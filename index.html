@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101821">
+  <title>AI-TRPG · 바텀웨이</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Serif+KR:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+  <main class="game-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="AI TRPG 홈"><span class="brand-mark">A</span><span>AI-TRPG<small>THE LIVING WORLD</small></span></a>
+      <div class="world-meta"><span class="live-dot"></span><span>1876년 · 인간 제국 남부</span><b>바텀웨이마을</b></div>
+      <div class="top-actions"><span class="save-state" id="saveState">로컬 기록 준비</span><button class="icon-btn" id="fullscreenBtn" title="전체 화면">⛶</button><button class="icon-btn" id="menuBtn" title="메뉴">☰</button></div>
+    </header>
+
+    <section class="main-layout">
+      <aside class="left-panel panel">
+        <div class="panel-heading"><span>ADVENTURER</span><span class="tiny-seal">01</span></div>
+        <div class="portrait-frame">
+          <div class="portrait-glow"></div>
+          <svg class="portrait-art" viewBox="0 0 180 210" role="img" aria-label="남색 망토를 두른 모험가 초상">
+            <defs><linearGradient id="coat" x2="1" y2="1"><stop stop-color="#334b67"/><stop offset="1" stop-color="#111d2c"/></linearGradient><linearGradient id="skin" x2="0" y2="1"><stop stop-color="#f2d2b8"/><stop offset="1" stop-color="#bd927c"/></linearGradient></defs>
+            <path d="M29 205 Q34 120 61 106 L90 92 122 108 Q151 129 155 205Z" fill="url(#coat)" stroke="#9a805b" stroke-width="2"/>
+            <path d="M62 108 L89 143 119 108 132 205 45 205Z" fill="#172638"/>
+            <path d="M67 107 L89 147 112 108 103 205 78 205Z" fill="#d7d1c5"/>
+            <path d="M63 44 Q66 9 97 14 Q126 16 127 53 L119 96 Q107 120 87 116 Q65 108 59 78Z" fill="url(#skin)"/>
+            <path d="M56 65 Q47 23 82 9 Q119 -1 133 36 L126 66 116 42 95 34 72 48 66 79Z" fill="#20202a"/>
+            <path d="M58 49 Q78 27 104 29 L127 47 118 61 91 49 68 66Z" fill="#292735"/>
+            <path d="M76 69 l9 1 M104 69 l9 -1" stroke="#25212a" stroke-width="3" stroke-linecap="round"/>
+            <path d="M91 86 q7 4 13 0" fill="none" stroke="#986e63" stroke-width="2" stroke-linecap="round"/>
+            <path d="M67 107 L40 129 17 204 53 204 83 137Z" fill="#263c56" stroke="#9a805b" stroke-width="2"/>
+            <path d="M119 108 L145 130 166 204 132 204 103 137Z" fill="#1b2c42" stroke="#9a805b" stroke-width="2"/>
+            <path d="M83 143 L90 163 98 143" fill="none" stroke="#b99b6c" stroke-width="3"/>
+            <path d="M75 121 L90 145 105 121" fill="none" stroke="#c7b28d" stroke-width="2"/>
+          </svg>
+          <span class="portrait-label">초기 모험가 디자인</span>
+        </div>
+        <div class="character-name"><strong id="heroName">이름 없는 모험가</strong><span>초보 모험가 · 별 0개</span></div>
+        <div class="level-row"><span>LEVEL 1</span><span>EXP 0 / 100</span></div><div class="exp-track"><i></i></div>
+        <div class="stat-list">
+          <div><span>HP</span><b>150 / 150</b></div><div class="meter hp"><i style="width:100%"></i></div>
+          <div><span>SP</span><b>25 / 25</b></div><div class="meter sp"><i style="width:100%"></i></div>
+          <div class="stat-grid"><span>근력 <b>—</b></span><span>지능 <b>—</b></span><span>방어력 <b>—</b></span><span>속도 <b>—</b></span></div>
+        </div>
+        <button class="wide-button" data-view="character">캐릭터 정보 보기</button>
+      </aside>
+
+      <section class="center-stage">
+        <div class="scene-toolbar"><span class="chapter-tag">PROLOGUE · 01</span><span>남부 초급 모험가 구역</span><button id="sceneInfo">지역 정보 ⓘ</button></div>
+        <div class="scene" id="scene">
+          <img class="scene-bg" src="./assets/village.svg" alt="바텀웨이마을의 판타지 풍경">
+          <div class="scene-vignette"></div>
+          <div class="weather-layer"></div>
+          <div class="scene-title"><small>HUMAN EMPIRE · SOUTHERN FRONTIER</small><h1>바텀웨이마을</h1><p>모험가의 첫걸음이 시작되는 곳</p></div>
+          <div class="hero-stage" id="heroStage">
+            <div class="hero-shadow"></div>
+            <svg class="hero-sprite" id="heroSprite" viewBox="0 0 180 260" role="img" aria-label="검을 든 모험가 캐릭터">
+              <defs><linearGradient id="capeFill" x2="1" y2="1"><stop stop-color="#405879"/><stop offset="1" stop-color="#111c2b"/></linearGradient><linearGradient id="armorFill" x2="0" y2="1"><stop stop-color="#a78d68"/><stop offset="1" stop-color="#514838"/></linearGradient></defs>
+              <g class="cape"><path d="M64 76 Q28 100 21 226 Q55 244 111 225 L127 104 105 79Z" fill="url(#capeFill)" stroke="#9c8058" stroke-width="2"/><path d="M47 112 Q34 166 39 220" fill="none" stroke="#7086a2" stroke-width="3" opacity=".5"/></g>
+              <g class="legs"><path d="M67 166 L60 220 51 245 76 248 91 188 98 245 124 246 116 211 119 164Z" fill="#202735" stroke="#9a805b" stroke-width="3"/><path d="M48 237 L79 238 78 254 39 254Z M99 237 L127 237 142 254 100 254Z" fill="#3b3028" stroke="#b09670" stroke-width="2"/></g>
+              <path d="M61 79 Q88 65 117 83 L132 165 Q94 181 52 164Z" fill="#273b52" stroke="#b19568" stroke-width="3"/>
+              <path d="M73 82 L91 127 111 83 104 169 80 169Z" fill="#d5d0c6"/>
+              <path d="M88 122 L97 142 105 122" fill="none" stroke="#b49a6d" stroke-width="4"/>
+              <g class="left-arm"><path d="M61 91 L42 108 49 155 67 151 75 111Z" fill="url(#armorFill)" stroke="#d0b78a" stroke-width="3"/><path d="M47 149 L67 146 72 164 49 169Z" fill="#443c35"/></g>
+              <g class="right-arm"><path d="M115 91 L137 108 130 150 112 146 105 111Z" fill="url(#armorFill)" stroke="#d0b78a" stroke-width="3"/><path d="M113 143 L134 147 132 166 110 161Z" fill="#443c35"/></g>
+              <path d="M66 37 Q67 10 92 10 Q119 11 119 43 L113 78 Q100 98 82 83 Q67 72 66 37Z" fill="#d6ad91"/>
+              <path d="M62 49 Q52 14 83 5 Q117 -4 129 30 L120 49 109 31 87 26 68 49Z" fill="#22212b"/>
+              <path d="M65 33 Q82 18 108 24 L123 42 114 50 91 36 69 56Z" fill="#2c2a35"/>
+              <path d="M78 53 l8 0 M101 53 l8 -1" stroke="#29242a" stroke-width="3" stroke-linecap="round"/>
+              <path d="M88 69 q8 4 14 -1" fill="none" stroke="#946c61" stroke-width="2"/>
+              <g class="sword"><path d="M137 145 L162 36" stroke="#d9e4ec" stroke-width="7" stroke-linecap="round"/><path d="M137 145 L162 36" stroke="#71899d" stroke-width="2"/><path d="M126 149 L146 154" stroke="#b58d53" stroke-width="7" stroke-linecap="round"/><path d="M132 140 L147 151" stroke="#e0c18b" stroke-width="3"/></g>
+            </svg>
+            <div class="slash-effect" id="slashEffect"></div>
+          </div>
+          <div class="scene-caption" id="sceneCaption">광장에는 상인들의 목소리와 분수 소리가 잔잔하게 퍼진다.</div>
+          <div class="scene-hotspots"><button data-message="분수대 주변에는 마을 주민들이 모여 있다.">분수대</button><button data-message="게시판에는 초급 의뢰가 붙어 있다.">의뢰 게시판</button><button data-message="길드 건물에서 모험가들이 드나든다.">모험가 길드</button></div>
+        </div>
+        <div class="action-dock">
+          <div class="dock-label">ACTION</div>
+          <button class="action-button primary" id="moveBtn"><span>↗</span> 이동</button>
+          <button class="action-button" id="talkBtn"><span>◌</span> 대화</button>
+          <button class="action-button" id="attackBtn"><span>⚔</span> 공격 연습</button>
+          <button class="action-button" data-view="map"><span>⌖</span> 지도</button>
+        </div>
+      </section>
+
+      <aside class="right-panel panel">
+        <div class="panel-heading"><span>WORLD LOG</span><span class="online-pill">● 기록 중</span></div>
+        <div class="log-list" id="logList" aria-live="polite">
+          <article class="log-entry"><time>1876년 · 1일차</time><p>당신은 인간 제국 남부의 바텀웨이마을에 도착했다.</p></article>
+          <article class="log-entry"><time>마을 소문</time><p>모험가 길드에서 초급 의뢰를 모집하고 있다.</p></article>
+          <article class="log-entry muted"><time>세계 기록</time><p>이곳에서의 선택과 행동은 계정 활동 기록에 남는다.</p></article>
+        </div>
+        <div class="gm-card"><div class="gm-head"><span class="gm-orb">✦</span><div><b>GAME MASTER</b><small>세계 안내자 · 초기 프로토타입</small></div></div><p id="gmText">마을 광장에 도착했습니다. 무엇을 먼저 살펴볼까요?</p><div class="gm-status"><span></span> 세계 상태 동기화 대기</div></div>
+        <div class="quick-nav"><button data-view="story">스토리</button><button data-view="character">캐릭터</button><button data-view="inventory">가방</button><button data-view="map">지도</button></div>
+      </aside>
+    </section>
+
+    <footer class="bottom-bar"><span>AI-TRPG <i>PROTOTYPE 0.1</i></span><span>이야기와 세계 기록은 이 기기에 자동 저장됩니다.</span><span id="clock">DAY 01 · 1876</span></footer>
+  </main>
+
+  <div class="modal-backdrop" id="modal" hidden>
+    <section class="modal-card"><button class="modal-close" id="closeModal">×</button><div id="modalContent"></div></section>
+  </div>
+  <script src="./src/app.js"></script>
+</body>
+</html>
