@@ -922,7 +922,7 @@
 
   modalContent.addEventListener("click", (event) => {
     const target = event.target;
-    if (target.id === "dialogueCloseBtn") { showFacility("shop"); return; }
+    if (target.id === "dialogueCloseBtn") { closeModal(); return; }
     if (target.id === "sellApplesBtn") { sellApples(); return; }
     if (target.dataset.npcTalk) { npcDialogue(target.dataset.npcTalk); return; }
     if (target.id === "rollCharacterBtn") {
