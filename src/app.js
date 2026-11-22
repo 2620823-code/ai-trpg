@@ -432,7 +432,7 @@
   function enterFacility(id) {
     if(!state.character){characterForm();return;}
     if(!facilities.some(f=>f.id===id))return;
-    if(id==="library"&&!(state.character.guild&&state.character.guild.joined)&&!state.libraryPaid){if(state.gold<20){notify("도서관 입장료 20G가 부족합니다.");return;}state.gold-=20;state.libraryPaid=true;record("도서관 입장료","20G 지불");renderCharacter();}
+    if(id==="library"&&!(state.character.guild&&state.character.guild.joined)){if(state.gold<20){notify("도서관 입장료 20G가 부족합니다.");return;}state.gold-=20;record("도서관 입장료","20G 지불");renderCharacter();}
     setRegion("facility-"+id);record("시설 입장",facilityTitle(id)+"에 들어왔다.");notify(facilityTitle(id)+" 내부");
   }
   function exitFacility() { setRegion("village");record("시설 퇴장","바텀웨이마을로 돌아왔다."); }
@@ -523,6 +523,9 @@
     const f=facilities.find(x=>x.id===id);if(!f)return;
     let html="<p>"+escape(f.summary)+"</p>";
     if(f.entryFee!==undefined) html+="<p>입장료: "+f.entryFee+"G</p>";
+    if(f.id==="training")html+="<p>훈련 게이지: "+((state.character.training&&state.character.training.gauge)||0)+"/8</p><button class='primary-modal' id='startTraining'>훈련 20턴 시작 (20G)</button>";
+    if(f.id==="guild")html+="<p>길드 등록: "+(state.character.guild&&state.character.guild.joined?"가입 완료":"미가입")+"</p><button class='primary-modal' id='joinGuild'>무료 길드 가입</button>";
+    if(f.id==="sanctuary"&&state.character.dead)html+="<button class='primary-modal' id='revivePlayer'>부활 (200G)</button>";
     if(f.id==="training")html+="<p>훈련 게이지: "+((state.character.training&&state.character.training.gauge)||0)+"/8</p><button class='primary-modal' id='startTraining'>훈련 20턴 시작 (20G)</button>";
     if(f.id==="guild")html+="<p>길드 등록: "+(state.character.guild&&state.character.guild.joined?"가입 완료":"미가입")+"</p><button class='primary-modal' id='joinGuild'>무료 길드 가입</button>";
     if(f.id==="sanctuary"&&state.character.dead)html+="<button class='primary-modal' id='revivePlayer'>부활 (200G)</button>";
