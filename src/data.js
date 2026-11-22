@@ -118,7 +118,7 @@ window.AITRPG_DATA.encounters = {
 };
 
 window.AITRPG_DATA.forestItems = {
-  bigApple: {id:"big-apple",name:"큰사과",type:"consumable",spawnStepMin:1,spawnStepMax:120,spawnMode:"random-step"},
+  bigApple: {id:"big-apple",name:"큰사과",type:"consumable",spawnStepMin:1,spawnStepMax:200,spawnMode:"random-step"},
   inventoryLimit:30
 };
 
