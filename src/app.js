@@ -669,7 +669,7 @@
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
     if(t.id==="libraryQuest")openModal("도서관 의뢰","<p>책의 미믹 3마리 처치. 보상은 20G와 스킬북 1개입니다.</p>");
     if(t.id==="joinGuild"){state.character.guild=state.character.guild||{};state.character.guild.joined=true;state.guildJoined=true;save();record("길드 가입","무료로 길드에 가입했다.");facilityContent("guild");}
-    if(t.id==="revivePlayer"){if(state.gold<200){notify("부활 비용 200G가 부족합니다.");return;}state.gold-=200;state.character.dead=false;state.character.hp=Math.max(1,Math.floor(state.character.maxHp/2));save();renderCharacter();record("부활","성소에서 200G를 지불하고 부활했다.");facilityContent("sanctuary");}
+    if(t.id==="revivePlayer"){if(state.gold<200){notify("부활 비용 200G가 부족합니다.");return;}state.gold-=200;state.character.dead=false;state.character.hp=state.character.maxHp;save();renderCharacter();record("부활","성소에서 200G를 지불하고 부활했다.");facilityContent("sanctuary");}
     if(t.id==="startTraining"){if(state.gold<20){notify("훈련장 입장료 20G가 부족합니다.");return;}state.gold-=20;state.character.training=state.character.training||{gauge:0,turns:0,braveDashCount:0};state.character.training.turns=20;state.character.training.active=true;state.character.training.sessionOnlyStruggle=true;save();record("훈련 시작","20G 지불 · 20턴 훈련 시작");trainingPanel();}
     if(t.dataset.trainSkill)trainingTurn(t.dataset.trainSkill);
     if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
@@ -681,7 +681,7 @@
       if(item){
         if(state.gold<item.price){notify("골드가 부족합니다.");return;}
         const restriction=item.restriction||"";
-        if(/검사 계열/.test(restriction)&&state.character.jobId!=="swordsman"||/도적 계열/.test(restriction)&&state.character.jobId!=="rogue"||/격투가 전용/.test(restriction)&&state.character.jobId!=="fighter"){notify("현재 직업은 구매할 수 없습니다.");return;}
+        if(/검사 계열/.test(restriction)&&state.character.jobId!=="swordsman"||/도적 계열/.test(restriction)&&state.character.jobId!=="rogue"||/격투가 전용/.test(restriction)&&state.character.jobId!=="fighter"||/마법사·암흑술사 전용/.test(restriction)&&!["mage","dark-mage"].includes(state.character.jobId)||/기술자·검사·도적 계열 전용/.test(restriction)&&!["technician","swordsman","rogue"].includes(state.character.jobId)||/마법사·암흑술사·주술사·마검사·마도구학자/.test(restriction)&&!["mage","dark-mage","shaman","magic-swordsman","arcane-tool-scholar"].includes(state.character.jobId)){notify("현재 직업은 구매할 수 없습니다.");return;}
         if(state.inventory.length>=30){notify("인벤토리가 가득 찼습니다.");return;}
         const bonusMatch=item.effect.match(/(?:보정치|보정)\s*\+\s*(\d+)/),ppMatch=item.effect.match(/PP\s*(\d+)/);
         const weapon=item.type==="무기";
