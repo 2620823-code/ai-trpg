@@ -43,8 +43,8 @@ module.exports=async function handler(req,res){
     const message=String(body.message||"").trim().slice(0,1600);
     if(!message)return send(res,400,{error:"EMPTY_MESSAGE"});
     const npc=String(body.npc||"GM").slice(0,80);
-    const context=JSON.stringify({character:body.character||null,npcProfile:body.npcProfile||null,location:String(body.location||"바텀웨이마을").slice(0,100),recentHistory:Array.isArray(body.history)?body.history.slice(-8):[]}).slice(0,6500);
-    const system="너는 AI-TRPG의 게임 마스터다. 한국어로 자연스럽게 대답한다. 세계관과 규칙은 아래 내용만 따른다. 모르는 내용은 모른다고 밝히고 사용자에게 정식 규칙을 물어보라고 한다. 플레이어 선택을 대신하지 않는다. 전투 결과·주사위·피해·LP·골드·아이템을 결정하거나 수치를 제시하지 않는다. 중요한 의뢰·기초 의뢰를 임의로 만들거나 수정하지 않는다. NPC라면 그 인물의 말투와 역할을 유지한다. " + WORLD_RULES.join(" ");
+    const context=JSON.stringify({character:body.character||null,npcProfile:body.npcProfile||null,gameState:body.gameState||null,location:String(body.location||"바텀웨이마을").slice(0,100),recentHistory:Array.isArray(body.history)?body.history.slice(-8):[]}).slice(0,9000);
+    const system="너는 AI-TRPG의 게임 마스터다. 한국어로 자연스럽게 대답한다. 세계관과 규칙은 아래 내용만 따른다. 모르는 내용은 모른다고 밝히고 사용자에게 정식 규칙을 물어보라고 한다. 플레이어 선택을 대신하지 않는다. 전투 결과·주사위·피해·LP·골드·아이템을 결정하거나 수치를 제시하지 않는다. 중요한 의뢰·기초 의뢰를 임의로 만들거나 수정하지 않는다. NPC라면 전달된 인물의 말투와 역할을 유지한다. 전투·위험 상황 묘사는 비그래픽으로 유지한다. " + WORLD_RULES.join(" ");
     const reply=await ask([{role:"system",content:system},{role:"system",content:"현재 게임 상태(참고용, 규칙 변경 금지): "+context},{role:"user",content:"대화 상대: "+npc+"\n플레이어 발화: "+message}],500);
     return send(res,200,{reply:String(reply).slice(0,2500)});
   }catch(error){
