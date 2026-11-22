@@ -607,18 +607,24 @@
       t.active=false;record("훈련 완료","20턴 훈련 완료 · 훈련 게이지 "+t.gauge+"/8");save();renderCharacter();if(!c.pendingEquipSkill)openModal("훈련 완료","<p>훈련 게이지가 "+(t.gauge>=8?"8/8 · 인벤토리가 가득 차 훈련의 성과 지급을 보류했습니다.":"현재 "+t.gauge+"/8")+"</p>");
     }else{record("훈련 진행",skill+" 사용 · 남은 턴 "+t.turns);save();trainingPanel();}
   }
-  function generateGeneralQuest(){
+  async function generateGeneralQuest(){
     const pool=(DATA.encounters&&DATA.encounters.forest&&DATA.encounters.forest.pool||[]).filter(id=>id!=="treasure-mimic");
-    if(!pool.length)return;
-    const target=pool[roll(pool.length)-1],monster=DATA.monsters.find(x=>x.id===target);if(!monster)return;
-    const q={id:"gm-"+Date.now(),title:"마물 토벌: "+monster.name,targetMonsterId:target,targetCount:1,defeated:0,status:"available",rewardLp:10,createdAt:new Date().toISOString()};
-    state.generalQuests=state.generalQuests||[];state.generalQuests.push(q);if(state.generalQuests.length>20)state.generalQuests.shift();save();record("AI GM 일반 의뢰 생성",q.title+" · 성공 보상 10 LP");showGeneralQuests();
+    const allowed=pool.map(id=>DATA.monsters.find(x=>x.id===id)).filter(Boolean).map(x=>({id:x.id,name:x.name}));
+    if(!allowed.length){notify("의뢰 생성에 사용할 수 있는 등록 마물이 없습니다.");return;}
+    const button=$("generateGeneralQuest");if(button){button.disabled=true;button.textContent="AI GM 의뢰 생성 중...";}
+    try{
+      const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"quest",allowedTargets:allowed})});
+      const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"의뢰 생성 실패");
+      const q={id:"gm-"+Date.now(),title:result.title,description:result.description,targetMonsterId:result.targetMonsterId,targetCount:1,defeated:0,status:"available",rewardLp:10,createdAt:new Date().toISOString()};
+      state.generalQuests=state.generalQuests||[];state.generalQuests.push(q);if(state.generalQuests.length>20)state.generalQuests.shift();
+      save();record("AI GM 일반 의뢰 생성",q.title+" · 성공 보상 10 LP");showGeneralQuests();
+    }catch(error){notify("AI GM 의뢰 생성 실패: "+error.message);showGeneralQuests();}
   }
   function showGeneralQuests(){
     const qs=state.generalQuests||[];
     const active=state.activeGeneralQuest;
     const html=(active?"<h3>진행 중</h3><p>"+escape(active.title)+" · "+active.defeated+"/"+active.targetCount+"</p>":"<p>진행 중인 일반 의뢰가 없습니다.</p>")+
-      "<h3>일반 의뢰</h3>"+(qs.length?qs.slice().reverse().map(q=>"<div class='inventory-item'><b>"+escape(q.title)+"</b><small>"+(q.status==="available"?"보상 10 LP · 수락 가능":q.status==="accepted"?"진행 중":q.status==="completed"?"완료":"종료")+"</small>"+(q.status==="available"&&!active?"<button class='primary-modal' data-accept-quest='"+escape(q.id)+"'>수락</button>":"")+"</div>").join(""):"<p>생성된 일반 의뢰가 없습니다.</p>")+
+      "<h3>일반 의뢰</h3>"+(qs.length?qs.slice().reverse().map(q=>"<div class='inventory-item'><b>"+escape(q.title)+"</b><small>"+escape(q.description||"")+" · "+(q.status==="available"?"보상 10 LP · 수락 가능":q.status==="accepted"?"진행 중":q.status==="completed"?"완료":"종료")+"</small>"+(q.status==="available"&&!active?"<button class='primary-modal' data-accept-quest='"+escape(q.id)+"'>수락</button>":"")+"</div>").join(""):"<p>생성된 일반 의뢰가 없습니다.</p>")+
       "<button class='primary-modal' id='generateGeneralQuest' "+(active?"disabled":"")+">일반 의뢰 생성</button>";
     openModal("길드 일반 의뢰",html);
   }
