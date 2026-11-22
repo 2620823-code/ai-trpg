@@ -95,7 +95,8 @@
     if (f.weaponRules) lines.push('<h3>무기 PP 규칙</h3><ul>' + f.weaponRules.map(x=>'<li>'+x+'</li>').join("") + '</ul>');
     if (f.books) lines.push('<h3>소장 도서</h3><ul>' + f.books.map(x=>'<li>'+x+'</li>').join("") + '</ul>');
     if (f.deities) lines.push('<h3>신앙 대상</h3><p>' + f.deities.join(" · ") + '</p>');
-    if (f.npcs) lines.push('<h3>NPC 정보</h3>' + f.npcs.map(n => '<div class="npc-note"><b>' + (n.name || "NPC") + (n.role ? ' · ' + n.role : '') + '</b><ul>' + (n.details || n).map(x=>'<li>'+x+'</li>').join("") + '</ul></div>').join(""));
+    if (f.npcDetails) lines.push('<h3>NPC 정보</h3><ul>' + f.npcDetails.map(x=>'<li>'+x+'</li>').join("") + '</ul>');
+    if (f.npcs) lines.push('<h3>NPC 정보</h3>' + f.npcs.map(n => '<div class="npc-note"><b>' + (n.name || "NPC") + (n.role ? ' · ' + n.role : '') + '</b><ul>' + (n.details || []).map(x=>'<li>'+x+'</li>').join("") + '</ul></div>').join(""));
     if (f.rules) lines.push('<h3>이용 규칙</h3><ul>' + f.rules.map(x=>'<li>'+x+'</li>').join("") + '</ul>');
     if (f.board) lines.push('<h3>의뢰 게시판</h3><ul>' + f.board.map(x=>'<li>'+x+'</li>').join("") + '</ul>');
     openModal(f.name, '<p>' + f.summary + '</p>' + lines.join("") + '<button class="primary-modal" id="facilityBack">시설 목록으로</button>');
@@ -119,7 +120,8 @@
   $("closeModal").addEventListener("click", closeModal);
   modal.addEventListener("click", (event) => { if (event.target === modal) closeModal(); });
   modalContent.addEventListener("click", (event) => {
-    if (event.target.id === "openFacilities") { showFacilities(); return; }\n    if (event.target.id === "facilityBack") { showFacilities(); return; }\n    if (event.target.dataset.facility) { showFacility(event.target.dataset.facility); return; }\n    if (event.target.id === "renameBtn") {
+    if (event.target.id === "openFacilities") { showFacilities(); return; }\n    if (event.target.id === "facilityBack") { showFacilities(); return; }\n    const facilityButton = event.target.closest("[data-facility]");
+    if (facilityButton) { showFacility(facilityButton.dataset.facility); return; }\n    if (event.target.id === "renameBtn") {
       modalContent.innerHTML = '<h2>캐릭터 이름</h2><label for="nameInput">이름</label><input id="nameInput" maxlength="20" value="' + escapeHtml(state.name) + '"><button class="primary-modal" id="saveName">저장</button>';
     }
     if (event.target.id === "saveName") {
