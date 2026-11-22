@@ -39,7 +39,7 @@ module.exports=async function handler(req,res){
   let body=req.body;
   if(typeof body==="string"){try{body=JSON.parse(body);}catch{return send(res,400,{error:"INVALID_JSON"});}}
   if(!body||typeof body!=="object")return send(res,400,{error:"INVALID_BODY"});
-  const mode=["review","job","quest"].includes(body.mode)?body.mode:"chat";
+  const mode=["review","storyOptions","job","quest"].includes(body.mode)?body.mode:"chat";
   try{
     if(mode==="review"){
       const profile=body.profile||{};
@@ -53,6 +53,23 @@ module.exports=async function handler(req,res){
       if(reviews.length!==3)return send(res,502,{error:"INCOMPLETE_REVIEW"});
       const allPassed=reviews.every(x=>String(x.verdict||"").includes("통과"))&&result.overall==="pass";
       return send(res,200,{reviews,overall:allPassed?"pass":"revise"});
+    }
+    if(mode==="storyOptions"){
+      const profile=body.profile||{};
+      const feedback=String(body.feedback||"").slice(0,1800);
+      const previous=Array.isArray(body.previousRejections)?body.previousRejections.slice(-3).map(x=>String(x).slice(0,500)): [];
+      const context={
+        race:String(profile.race||"").slice(0,40),
+        appearance:String(profile.appearance||"").slice(0,500),
+        personality:String(profile.personality||"").slice(0,500),
+        rejectedBackground:String(profile.background||"").slice(0,3000)
+      };
+      const prompt="너는 AI-TRPG의 AI 게임 마스터이자 캐릭터 설정 작가다. 캐릭터 설정 심사에서 세 차례 이상 거절된 플레이어를 돕기 위해, 현재 세계관과 시작 상황에 맞는 새로운 배경 이야기 3개를 제안한다. 각 배경은 공백 포함 한국어 200자 이상 900자 이하이며 서로 내용과 출발 동기가 뚜렷이 달라야 한다. 각 이야기는 1876년 인간 제국 남부 바텀웨이마을에 도착할 수 있어야 한다. 확정 세계관과 충돌하는 새로운 종족·국가·지역·시설·역사·마법 체계·왕위·신적 혈통·전설급 장비·세계 핵심 사건 해결 설정을 추가하지 않는다. 캐릭터가 아직 획득하지 않은 특별한 힘이나 지위를 부여하지 않는다. 플레이어가 선택한 종족·외모·성격을 존중한다. 기존 거절 이유와 플레이어 의견을 반영하되, 허용 가능한 일상적 과거·동기·관계·실패·여행 경위로 재구성한다. 세 옵션 모두 플레이 가능하고 안전한 모험가 출발점이어야 한다. JSON 객체 {options:[{title,background,hook}]}만 반환한다. options는 정확히 3개, title은 2~20자, hook은 1~2문장이다. 세계 규칙: "+WORLD_RULES.join(" ");
+      const text=await ask(req,[{role:"system",content:prompt},{role:"user",content:JSON.stringify({profile:context,playerFeedback:feedback,previousRejections:previous})}],2200,true);
+      let result;try{result=JSON.parse(text.replace(/^\\s*\x60\x60\x60json\\s*|\\s*\x60\x60\x60\\s*$/g,""));}catch{return send(res,502,{error:"INVALID_STORY_OPTIONS_FORMAT"});}
+      const options=Array.isArray(result.options)?result.options.slice(0,3):[];
+      if(options.length!==3||options.some(x=>typeof x.title!=="string"||typeof x.background!=="string"||x.background.trim().length<200||x.background.trim().length>900||typeof x.hook!=="string"))return send(res,502,{error:"INVALID_STORY_OPTIONS",message:"AI가 200자 이상인 배경 이야기 3개를 완성하지 못했습니다. 다시 요청해 주세요."});
+      return send(res,200,{options:options.map(x=>({title:x.title.trim().slice(0,40),background:x.background.trim(),hook:x.hook.trim().slice(0,240)}))});
     }
     if(mode==="job"){
       const character=body.character||{};
