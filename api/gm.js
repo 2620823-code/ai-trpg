@@ -29,7 +29,7 @@ async function ask(req,messages,maxTokens=700,jsonMode=false){
     body:JSON.stringify({model:MODEL,messages,max_tokens:maxTokens,...(jsonMode?{response_format:{type:"json_object"}}:{})})
   });
   const raw=await response.text();let data;try{data=JSON.parse(raw);}catch{throw new Error("AI_GATEWAY_BAD_RESPONSE");}
-  if(!response.ok)throw new Error("AI_GATEWAY_"+response.status);
+  if(!response.ok){const upstreamMessage=String(data&&((data.error&&data.error.message)||data.message)||"").replace(/[\\r\\n]/g," ").slice(0,120);throw new Error("AI_GATEWAY_"+response.status+(upstreamMessage?":"+upstreamMessage:""));}
   return data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content||"";
 }
 module.exports=async function handler(req,res){
