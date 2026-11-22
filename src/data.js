@@ -18,7 +18,7 @@ window.AITRPG_DATA = {
       ],
       weaponRules:["모든 무기는 소모성이다.","공격이 명중하면 PP 1 감소한다.","공격이 빗나가면 PP는 감소하지 않는다.","PP가 0이 되면 무기가 파괴된다."]
     },
-    {id:"library",name:"도서관",owner:"하멜",summary:"도서관 내부에서만 책을 열람할 수 있다.",icon:"library",
+    {id:"library",name:"도서관",owner:"하멜",summary:"도서관 내부에서 책을 열람하고 서가를 탐색할 수 있다. 50발자국마다 책의 미믹 조우 판정을 한다.",icon:"library",
       rules:["길드 등록자는 무료 입장할 수 있다.","길드 미등록자는 입장료 20G를 낸다.","책 대여는 불가능하며 내부 열람만 가능하다.","책을 무단 반출하면 하멜이 적대적으로 변한다.","적대 상태에서 다시 입장하면 하멜이 전투를 건다."],
       books:["중급 마법서","약초학","마물학(저급)","기술서","훈련서","검술서","암흑서"],
       npc:["건장한 체격에 은근히 근육이 많고 펌한 머리와 푸른 눈을 가졌다.","온순하며 밖에 나가는 것을 싫어한다.","평소에는 친절하지만 책 무단 반출자에게 자비를 베풀지 않는다."]
@@ -98,13 +98,42 @@ window.AITRPG_DATA.regions = [
     id:"forest",
     name:"바텀웨이 숲",
     type:"field",
-    status:"임시 테스트 지역",
-    summary:"마을 바깥의 숲 탐험 구역. 지역 이동과 탐험 기능만 준비되어 있으며 마물 데이터는 사용자가 직접 작성할 예정이다."
+    status:"탐험 구역",
+    summary:"마을 바깥의 숲 탐험 구역. 50발자국마다 1d100을 굴려 20 이하이면 마물을 조우한다."
   }
 ];
 
-window.AITRPG_DATA.monsters = [];
-window.AITRPG_DATA.monsterStatus = "마물 데이터는 사용자가 직접 작성할 예정이며 현재 등록된 마물이 없습니다.";
+window.AITRPG_DATA.monsters = [
+  {id:"weak-goblin",name:"약골 고블린",kind:"goblin",zone:"forest",spawnWeight:0.5,stats:{hp:100,strength:25,intelligence:5,defense:20,speed:30}},
+  {id:"weak-spider",name:"약골 거미",kind:"spider",zone:"forest",spawnWeight:1,stats:{hp:80,strength:40,intelligence:10,defense:5,speed:40}},
+  {id:"goblin",name:"고블린",kind:"goblin",zone:"forest",spawnWeight:0.5,stats:{hp:150,strength:40,intelligence:5,defense:25,speed:25}},
+  {id:"weak-mimic",name:"약골 미믹",kind:"mimic-base",zone:"variant-template",spawnWeight:0,stats:{hp:1,strength:20,intelligence:20,defense:null,speed:40}},
+  {id:"treasure-mimic",name:"보물 속 미믹",kind:"mimic",zone:"forest",variantOf:"weak-mimic",spawnWeight:1,appearance:"treasure"},
+  {id:"book-mimic",name:"책의 미믹",kind:"mimic",zone:"library",variantOf:"weak-mimic",spawnWeight:1,appearance:"book"}
+];
+
+window.AITRPG_DATA.encounters = {
+  forest: {stepInterval:50,rollSides:100,encounterOnOrBelow:20,pool:["weak-goblin","weak-spider","goblin","treasure-mimic"],note:"고블린 계열의 출현 가중치는 다른 마물의 절반으로 임시 설정(0.5)."},
+  library: {stepInterval:50,rollSides:100,encounterOnOrBelow:20,pool:["book-mimic"]}
+};
+
+window.AITRPG_DATA.forestItems = {
+  bigApple: {id:"big-apple",name:"큰사과",type:"consumable",spawnStepMin:1,spawnStepMax:50,spawnMode:"random-step"},
+  inventoryLimit:30
+};
+
+window.AITRPG_DATA.libraryQuest = {
+  id:"book-mimic-hunt",
+  name:"도서관의 책의 미믹 퇴치",
+  description:"도서관에 출현한 책의 미믹 3마리를 처치한다.",
+  targetMonsterId:"book-mimic",
+  targetCount:3,
+  reward:{gold:20,item:{id:"skill-book",name:"스킬북",type:"skill-book"}}
+};
+
+window.AITRPG_DATA.guildBuybackPrices = {
+  "마물 유해": null
+};
 
 
 window.AITRPG_DATA.npcs = [
