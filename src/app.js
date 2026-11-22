@@ -461,7 +461,7 @@
   });
   window.addEventListener("blur",stopMoving);
   window.addEventListener("keydown",(e)=>{
-    if(e.altKey||e.ctrlKey||e.metaKey||!modal.hidden||!dialogueScreen.hidden)return;
+    if(e.altKey||e.ctrlKey||e.metaKey||!modal.hidden||!dialogueScreen.hidden||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
     const keys={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
     if(keys[e.key]){e.preventDefault();if(heldDirection!==keys[e.key])startMoving(keys[e.key]);} else if(e.key==="e"||e.key==="E"){e.preventDefault();interact();}
   });
