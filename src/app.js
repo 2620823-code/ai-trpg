@@ -127,20 +127,42 @@
       "<div><span>SP</span><b>"+c.sp+" / "+c.maxSp+"</b></div><div class='meter sp'><i style='width:"+(100*c.sp/c.maxSp)+"%'></i></div>"+
       "<div class='stat-grid'><span>근력 <b>"+c.strength+"</b></span><span>지능 <b>"+c.intelligence+"</b></span><span>방어력 <b>"+c.defense+"</b></span><span>속도 <b>"+c.speed+"</b></span><span>행운 <b>"+c.luck+"</b></span><span>정교함 <b>"+c.precision+"</b></span></div><p class='muted'>보유 골드 "+state.gold+"G</p>" : "<p class='muted'>캐릭터를 생성하면 능력치가 표시됩니다.</p>";
   }
+  let characterReviewPassed=false,characterReviewBusy=false;
   function characterForm() {
     const races = (DATA.races || []).map((r)=>"<option value='"+escape(r.id)+"'>"+escape(r.name)+"</option>").join("");
     const jobs = (DATA.jobs || []).map((j)=>"<option value='"+escape(j.id)+"'>"+escape(j.name)+"</option>").join("");
-    openModal("새 캐릭터 생성", "<p>종족과 직업을 선택하면 확정된 주사위 규칙으로 능력치를 생성합니다. 시작 골드는 200G입니다.</p>"+
+    characterReviewPassed=false;
+    openModal("새 캐릭터 생성", "<p>종족과 직업을 선택하고 외모·성격·배경을 작성하세요. 배경은 바텀웨이마을에 도착하게 된 경위를 포함해 200자 이상이어야 합니다.</p>"+
       "<label>이름</label><input id='charName' maxlength='20' value='이름 없는 모험가'><label>종족</label><select id='charRace'>"+races+"</select><label>직업</label><select id='charJob'>"+jobs+"</select>"+
-      "<div id='rollPreview'><p class='muted'>능력치 주사위를 굴려 주세요.</p></div><button class='primary-modal' id='rollChar'>주사위 굴리기</button><button class='primary-modal' id='saveChar' disabled>캐릭터 생성</button>");
+      "<label>외모</label><textarea id='charAppearance' rows='2' maxlength='500' placeholder='캐릭터의 외모를 작성하세요.'></textarea><label>성격</label><textarea id='charPersonality' rows='2' maxlength='500' placeholder='캐릭터의 성격과 행동 방식을 작성하세요.'></textarea><label>배경 이야기 (200자 이상)</label><textarea id='charBackground' rows='6' maxlength='3000' minlength='200' placeholder='바텀웨이마을에 도착한 이유와 과거를 포함해 작성하세요.'></textarea>"+
+      "<button class='primary-modal' id='reviewCharacter'>AI 심사관 3명에게 설정 검토 요청</button><div id='reviewResults'></div><div id='rollPreview'><p class='muted'>AI 심사를 통과한 뒤 능력치 주사위를 굴릴 수 있습니다.</p></div><button class='primary-modal' id='rollChar' disabled>능력치 주사위 굴리기</button><button class='primary-modal' id='saveChar' disabled>캐릭터 생성</button>");
     pendingCharacter = null;
   }
+  async function reviewCharacter(){
+    if(characterReviewBusy)return;
+    const background=$("charBackground").value.trim();
+    if(background.length<200){notify("배경 이야기를 200자 이상 작성해야 합니다.");return;}
+    characterReviewBusy=true;const button=$("reviewCharacter");button.disabled=true;button.textContent="심사 중...";
+    const profile={race:DATA.races.find(x=>x.id===$("charRace").value)?.name,job:DATA.jobs.find(x=>x.id===$("charJob").value)?.name,appearance:$("charAppearance").value,personality:$("charPersonality").value,background};
+    try{
+      const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"review",profile})});
+      const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"심사 요청 실패");
+      characterReviewPassed=result.overall==="pass";
+      $("reviewResults").innerHTML=(result.reviews||[]).map(x=>"<div class='inventory-item'><b>"+escape(x.reviewer||"심사관")+" · "+escape(x.verdict||"검토")+"</b><small>"+escape(x.reason||"")+"</small><p>"+escape(x.suggestion||"")+"</p></div>").join("");
+      $("rollPreview").innerHTML=characterReviewPassed?"<p>세 심사관의 검토를 통과했습니다. 능력치 주사위를 굴릴 수 있습니다.</p>":"<p>수정 제안이 있습니다. 설정을 수정한 뒤 다시 검토받으세요.</p>";
+      $("rollChar").disabled=!characterReviewPassed;$("saveChar").disabled=true;pendingCharacter=null;
+    }catch(error){
+      characterReviewPassed=false;$("rollChar").disabled=true;
+      $("reviewResults").innerHTML="<p class='muted'>AI 심사 연결 실패: "+escape(error.message)+"</p>";
+    }finally{characterReviewBusy=false;button.disabled=false;button.textContent="AI 심사관 3명에게 설정 검토 요청";}
+  }
   function rollCharacter() {
+    if(!characterReviewPassed){notify("먼저 AI 심사를 통과해야 합니다.");return;}
     const name = $("charName").value.trim() || "이름 없는 모험가";
     const raceId = $("charRace").value, jobId = $("charJob").value;
     const stats = applyRace(baseStats(), raceId);
     const race = DATA.races.find((r)=>r.id===raceId), job = DATA.jobs.find((j)=>j.id===jobId);
-    pendingCharacter = {...stats,name,raceId,raceName:race.name,jobId,jobName:job.name,level:1,lp:0,nextLp:50,statPoints:0,exp:0,nextExp:50,skills:["이판사판"],equippedSkills:["이판사판"],inventory:[],equipment:{weapon:null,armor:null},guild:{joined:false,rank:0},training:{gauge:0,turns:0,braveDashCount:0},dead:false};
+    pendingCharacter = {...stats,name,raceId,raceName:race.name,jobId,jobName:job.name,appearance:$("charAppearance").value.trim(),personality:$("charPersonality").value.trim(),background:$("charBackground").value.trim(),level:1,lp:0,nextLp:50,statPoints:0,exp:0,nextExp:50,skills:["이판사판"],equippedSkills:["이판사판"],inventory:[],equipment:{weapon:null,armor:null},guild:{joined:false,rank:0},training:{gauge:0,turns:0,braveDashCount:0},dead:false};
     $("rollPreview").innerHTML = statsHtml(pendingCharacter); $("saveChar").disabled = false;
   }
   function saveCharacter() {
@@ -803,8 +825,10 @@
     const watcher=window.setInterval(()=>{if(Math.hypot(targetX-state.worldX,targetY-state.worldY)<48||state.activeEncounter){stopMoving();clearInterval(watcher);}},80);
   });
   $("closeModal").addEventListener("click",closeModal);modal.addEventListener("click",(e)=>{if(e.target===modal)closeModal();});
+  modalContent.addEventListener("input",(e)=>{if(["charName","charRace","charJob","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
   modalContent.addEventListener("click",(e)=>{
     const t=e.target;
+    if(t.id==="reviewCharacter")reviewCharacter();
     if(t.id==="rollChar")rollCharacter();
     if(t.id==="saveChar")saveCharacter();
     if(t.id==="leaveEncounter")leaveEncounter();
