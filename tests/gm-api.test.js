@@ -28,7 +28,7 @@ test("character review requires three passing reviewers", async () => {
     {reviewer:"밸런스 심사관",verdict:"통과",reason:"적절",suggestion:"없음"},
     {reviewer:"플레이 가능성 심사관",verdict:"통과",reason:"가능",suggestion:"없음"}
   ]});
-  const res=responseMock();await handler({method:"POST",headers:{"x-forwarded-for":"test-review"},body:{mode:"review",profile:{background:"배경 설명 ".repeat(30)}}},res);
+  const res=responseMock();await handler({method:"POST",headers:{"x-forwarded-for":"test-review"},body:{mode:"review",profile:{background:"배경 설명 ".repeat(60)}}},res);
   global.fetch=previous;
   assert.equal(res.statusCode,200);
   assert.equal(JSON.parse(res.body).overall,"pass");
