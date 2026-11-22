@@ -84,3 +84,36 @@ test("quest generation only accepts a target from the supplied allowlist", async
     assert.equal(JSON.parse(res.body).error,"INVALID_QUEST_TARGET");
   } finally { global.fetch=previous; }
 });
+
+test("AI GM returns exactly three story options with at least 200 characters each", async () => {
+  const previous=global.fetch;
+  const paragraph="바텀웨이마을에 도착하기 전, 이 인물은 가족의 생계를 돕기 위해 여러 마을을 오가며 평범한 일을 했다. 낯선 곳에서 작은 실수를 겪기도 했지만, 그 과정에서 다른 사람의 사정을 듣고 도움을 주는 법을 배웠다. 어느 날 남부로 향하는 상인의 짐을 나르는 일을 맡았고, 그 여정의 끝에서 모험가 길드의 소문을 들었다. 특별한 혈통이나 힘은 없지만 새로운 삶을 시작하고 싶어 바텀웨이마을에 머물기로 했다.";
+  global.fetch=async()=>completion({options:[
+    {title:"상인의 동행자",background:paragraph,hook:"상단 일을 돕다 길드의 소문을 들었다."},
+    {title:"잃어버린 편지",background:paragraph+" 마을에 도착한 뒤 오래된 편지를 전할 사람을 찾고 있다.",hook:"평범한 부탁을 해결하며 모험을 시작한다."},
+    {title:"새로운 기술",background:paragraph+" 이전의 일을 정리하고 새로운 기술을 배우려 마을에 왔다.",hook:"작은 일부터 시작하려 한다."}
+  ]});
+  try{
+    const res=responseMock();
+    await handler({method:"POST",headers:{"x-forwarded-for":"test-story-options"},body:{mode:"storyOptions",profile:{race:"인간",appearance:"여행자",personality:"신중함",background:"기존 설정"},feedback:"왕족 설정은 유지하고 싶지 않음"}},res);
+    const result=JSON.parse(res.body);
+    assert.equal(res.statusCode,200);
+    assert.equal(result.options.length,3);
+    assert.ok(result.options.every(x=>x.background.length>=200));
+  }finally{global.fetch=previous;}
+});
+
+test("AI GM rejects generated story options shorter than 200 characters", async () => {
+  const previous=global.fetch;
+  global.fetch=async()=>completion({options:[
+    {title:"짧은 이야기",background:"너무 짧은 설정",hook:"요약"},
+    {title:"짧은 이야기 2",background:"너무 짧은 설정",hook:"요약"},
+    {title:"짧은 이야기 3",background:"너무 짧은 설정",hook:"요약"}
+  ]});
+  try{
+    const res=responseMock();
+    await handler({method:"POST",headers:{"x-forwarded-for":"test-story-short"},body:{mode:"storyOptions",profile:{race:"인간"}}},res);
+    assert.equal(res.statusCode,502);
+    assert.equal(JSON.parse(res.body).error,"INVALID_STORY_OPTIONS");
+  }finally{global.fetch=previous;}
+});
