@@ -849,8 +849,9 @@
   async function importSaveFile(file){
     if(!file)return;
     try{
+      if(file.size>2*1024*1024)throw new Error("저장 파일은 2MB 이하여야 합니다.");
       const parsed=JSON.parse(await file.text());
-      if(!parsed||typeof parsed!=="object"||!parsed.character||!Array.isArray(parsed.actions)||!Array.isArray(parsed.inventory))throw new Error("저장 파일 형식이 올바르지 않습니다.");
+      if(!parsed||typeof parsed!=="object"||!parsed.character||typeof parsed.character.name!=="string"||!Array.isArray(parsed.actions)||!Array.isArray(parsed.inventory)||!Number.isFinite(parsed.gold))throw new Error("저장 파일 형식이 올바르지 않습니다.");
       localStorage.setItem(KEY,JSON.stringify(parsed));localStorage.setItem(KEY+"-backup",JSON.stringify(parsed));window.location.reload();
     }catch(error){notify("저장 파일을 불러오지 못했습니다: "+error.message);}
   }
