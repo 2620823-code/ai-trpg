@@ -343,7 +343,7 @@
     "파이어볼":{job:"mage",sp:3,kind:"attack",tier:"normal",formula:c=>c.intelligence*1.7+10+weaponBonus()},
     "우뢰":{job:"mage",sp:4,kind:"attack",tier:"powerful",formula:c=>c.strength+c.intelligence+25+weaponBonus()},
     "아이스 에이지":{job:"mage",sp:4.5,kind:"attack",tier:"ultimate",formula:c=>c.intelligence*1.9+30+weaponBonus()},
-    "스피릿":{job:"mage",sp:2,kind:"attack",tier:"normal",formula:c=>c.intelligence*1.3+weaponBonus()},
+    "스피릿":{job:"mage",sp:2,kind:"attack",tier:"normal",formula:c=>c.intelligence*1.25},
     "터렛":{job:"technician",sp:2.5,kind:"turret"},
     "폭발 지뢰":{job:"technician",sp:3,kind:"attack",tier:"powerful",formula:c=>c.intelligence*1.3+weaponBonus()},
     "강화 장갑":{job:"technician",sp:4,kind:"attack",tier:"powerful",formula:c=>Math.max(c.intelligence,c.strength)*1.7+weaponBonus()},
@@ -351,7 +351,7 @@
     "연속타":{job:"fighter",sp:2,kind:"chain",tier:"normal",formula:c=>c.strength*1.5},
     "기합타격":{job:"fighter",sp:5,kind:"attack",tier:"powerful",formula:c=>c.strength+c.defense},
     "카운터":{job:"fighter",sp:3,kind:"counter"},
-    "셰도크로":{job:"rogue",sp:3.5,kind:"attack",tier:"ultimate",formula:c=>c.strength*1.4+weaponBonus()},
+    "셰도크로":{job:"rogue",sp:3.5,kind:"attack",tier:"ultimate",formula:c=>c.strength*1.5+weaponBonus()},
     "포이즌 테러":{job:"rogue",sp:3,kind:"poison"},
     "갈취":{job:"rogue",sp:2,kind:"leech"},
     "회복":{job:"shared",sp:4,kind:"heal"},
@@ -422,8 +422,8 @@
     if(d.kind==="parry"){e.parryReady=true;record("스킬 사용","패링 · SP "+cost+" · 다음 공격 방어 자동 성공 · 피해 ×0.25");monsterAttack(monster);return;}
     if(d.kind==="counter"){e.counterReady=true;record("스킬 사용","카운터 · SP "+cost+" · 다음 물리 공격 피해의 2배 반격");monsterAttack(monster);return;}
     if(d.kind==="turret"){e.turretTurns=3;record("스킬 사용","터렛 설치 · SP "+cost+" · 3턴간 매턴 10 피해");monsterAttack(monster);return;}
-    if(d.kind==="poison"){e.poisonTurns=3;record("스킬 사용","포이즌 테러 · SP "+cost+" · 3턴간 마물 최대 HP의 1/8 피해");monsterAttack(monster);return;}
-    if(d.kind==="leech"){if(!Number.isFinite(monster.currentSp)){c.sp=before;notify("이 마물은 SP 보유량이 정해져 있지 않아 갈취할 수 없습니다.");return;}const stolen=Math.floor(monster.currentSp/2);monster.currentSp=Math.max(0,(monster.currentSp||0)-stolen);c.sp=Math.min(c.maxSp||25,c.sp+stolen);record("스킬 사용","갈취 · SP "+cost+" · 마물 현재 SP 절반 탈취 "+stolen);monsterAttack(monster);return;}
+    if(d.kind==="poison"){const hit=roll(100),threshold=playerHitThreshold("powerful");if(hit>threshold){record("스킬 사용","포이즌 테러 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 실패");monsterAttack(monster);return;}e.poisonTurns=3;record("스킬 사용","포이즌 테러 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 3턴간 마물 최대 HP의 1/8 피해");monsterAttack(monster);return;}
+    if(d.kind==="leech"){if(!Number.isFinite(monster.currentSp)){c.sp=before;notify("이 마물은 SP 보유량이 정해져 있지 않아 갈취할 수 없습니다.");return;}const hit=roll(100),threshold=playerHitThreshold("normal");if(hit>threshold){record("스킬 사용","갈취 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 실패");monsterAttack(monster);return;}const stolen=Math.floor(monster.currentSp/2);monster.currentSp=Math.max(0,monster.currentSp-stolen);c.sp=Math.min(c.maxSp||25,c.sp+stolen);record("스킬 사용","갈취 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 마물 현재 SP 절반 탈취 "+stolen);monsterAttack(monster);return;}
     if(d.kind==="heal"){
       if(e.recoveryUsed){c.sp+=cost;notify("회복은 전투당 1회만 사용할 수 있습니다.");return;}
       const amount=Math.floor(c.maxHp/4);c.hp=Math.min(c.maxHp,c.hp+amount);e.recoveryUsed=true;record("스킬 사용","회복 · SP "+cost+" · HP "+amount+" 회복");monsterAttack(monster);return;
