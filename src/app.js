@@ -555,11 +555,11 @@
   function trainingTurn(skill){
     const c=state.character,t=c.training;if(!t||!t.active||t.turns<=0)return;
     t.turns--;if(skill!=="이판사판")t.sessionOnlyStruggle=false;
-    if(t.turns===0){t.gauge=Math.min(8,(t.gauge||0)+1);t.sessions=(t.sessions||0)+1;if(t.sessionOnlyStruggle)t.braveDashCount=(t.braveDashCount||0)+1;
+    if(t.turns===0){t.gauge=Math.min(8,(t.gauge||0)+1);t.sessions=(t.sessions||0)+1;
       if(t.gauge>=8){if(addItem({id:"training-result",name:"훈련의 성과",type:"훈련 아이템"}))t.gauge=0;}
       if(t.sessionOnlyStruggle)t.braveDashCount=(t.braveDashCount||0)+1;
       if(t.braveDashCount>=5&&!(c.skills||[]).includes("브레이브 대쉬")){grantSkill("브레이브 대쉬","이판사판만 사용한 훈련 5회 완료");}
-      t.active=false;record("훈련 완료","20턴 훈련 완료 · 훈련 게이지 "+t.gauge+"/8");save();renderCharacter();openModal("훈련 완료","<p>훈련 게이지가 1 증가했습니다. 현재 "+t.gauge+"/8</p>");
+      t.active=false;record("훈련 완료","20턴 훈련 완료 · 훈련 게이지 "+t.gauge+"/8");save();renderCharacter();if(!c.pendingEquipSkill)openModal("훈련 완료","<p>훈련 게이지가 "+(t.gauge>=8?"8/8 · 인벤토리가 가득 차 훈련의 성과 지급을 보류했습니다.":"현재 "+t.gauge+"/8")+"</p>");
     }else{record("훈련 진행",skill+" 사용 · 남은 턴 "+t.turns);save();trainingPanel();}
   }
   function generateGeneralQuest(){
