@@ -54,7 +54,9 @@
 
   function save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify(state));
+      const snapshot=JSON.stringify(state);
+      localStorage.setItem(KEY,snapshot);
+      if(state.character)localStorage.setItem(KEY+"-backup",snapshot);
       $("saveState").textContent = "● 자동 저장됨";
     } catch { $("saveState").textContent = "저장 공간 부족"; }
   }
@@ -527,9 +529,6 @@
     if(f.id==="training")html+="<p>훈련 게이지: "+((state.character.training&&state.character.training.gauge)||0)+"/8</p><button class='primary-modal' id='startTraining'>훈련 20턴 시작 (20G)</button>";
     if(f.id==="guild")html+="<p>길드 등록: "+(state.character.guild&&state.character.guild.joined?"가입 완료":"미가입")+"</p><button class='primary-modal' id='joinGuild'>무료 길드 가입</button>";
     if(f.id==="sanctuary"&&state.character.dead)html+="<button class='primary-modal' id='revivePlayer'>부활 (200G)</button>";
-    if(f.id==="training")html+="<p>훈련 게이지: "+((state.character.training&&state.character.training.gauge)||0)+"/8</p><button class='primary-modal' id='startTraining'>훈련 20턴 시작 (20G)</button>";
-    if(f.id==="guild")html+="<p>길드 등록: "+(state.character.guild&&state.character.guild.joined?"가입 완료":"미가입")+"</p><button class='primary-modal' id='joinGuild'>무료 길드 가입</button>";
-    if(f.id==="sanctuary"&&state.character.dead)html+="<button class='primary-modal' id='revivePlayer'>부활 (200G)</button>";
     if(f.items) html+="<h3>판매 목록</h3><div class='shop-list'>"+f.items.map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-buy='"+i+"'>구매</button></div>").join("")+"</div><p>큰사과는 개당 5G에 판매할 수 있습니다.</p><button class='primary-modal' id='sellApples'>큰사과 판매</button>";
     if(f.rules)html+="<h3>이용 규칙</h3><ul>"+f.rules.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
     if(f.books)html+="<h3>소장 도서</h3><ul>"+f.books.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
@@ -580,7 +579,7 @@
   $("forestBtn").addEventListener("click",()=>{if(state.region==="forest")setRegion("village");else if(state.region.startsWith("facility-"))setRegion("village");else {scheduleApple();setRegion("forest");record("지역 이동","바텀웨이 숲에 진입했다.");notify("바텀웨이 숲에 도착했습니다.");}});
   $("moveBtn").addEventListener("click",()=>move("up"));
   $("talkBtn").addEventListener("click",interact);
-  $("attackBtn").addEventListener("click",()=>{if(!state.character){characterForm();return;}hero.classList.add("attacking");setTimeout(()=>hero.classList.remove("attacking"),650);message("공격 동작을 연습했습니다.","실제 피해 판정은 전투 규칙 연결 후 실행됩니다.");record("훈련 연출","공격 애니메이션을 연습했다.");});
+  $("attackBtn").addEventListener("click",()=>{if(!state.character){characterForm();return;}if(state.activeEncounter){battleAction("attack");return;}message("전투 대상이 없습니다.","숲에서 마물을 조우하면 공격할 수 있습니다.");});
   $("facilityBtn").addEventListener("click", () => {
     if (state.region.startsWith("facility-")) {
       facilityContent(state.region.slice(9));
@@ -627,6 +626,8 @@
     if(t.id==="rollChar")rollCharacter();
     if(t.id==="saveChar")saveCharacter();
     if(t.id==="leaveEncounter")leaveEncounter();
+    if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
+    if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
     if(t.id==="sellApples")sellApples();
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
