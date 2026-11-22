@@ -417,15 +417,15 @@
     const c=state.character,e=state.activeEncounter,monster=currentMonster(),d=SKILL_BOOK[name];if(!c||!e||!monster||!d)return;
     if(d.job!=="shared"&&d.job!==c.jobId){notify("현재 직업은 이 스킬을 사용할 수 없습니다.");return;}
     const before=c.sp;c.sp=Math.min(c.maxSp||25,(c.sp||0)+1);const cost=skillCost(name,c);
-    if(c.sp<cost){c.sp=before;notify("SP가 부족합니다.");return;}c.sp-=cost;
-    if(d.kind==="unknown"){c.sp=before;notify("이판사판의 HP 소모량은 확인됐지만 전투 효과가 아직 정해지지 않아 실행할 수 없습니다.");return;}
+    if(c.sp<cost){notify("턴 회복 후에도 SP가 부족해 스킬을 사용할 수 없습니다.");save();renderCharacter();return;}c.sp-=cost;
+    if(d.kind==="unknown"){notify("이판사판의 HP 소모량은 확인됐지만 전투 효과가 아직 정해지지 않아 실행할 수 없습니다.");return;}
     if(d.kind==="parry"){e.parryReady=true;record("스킬 사용","패링 · SP "+cost+" · 다음 공격 방어 자동 성공 · 피해 ×0.25");monsterAttack(monster);return;}
     if(d.kind==="counter"){e.counterReady=true;record("스킬 사용","카운터 · SP "+cost+" · 다음 물리 공격 피해의 2배 반격");monsterAttack(monster);return;}
     if(d.kind==="turret"){e.turretTurns=3;record("스킬 사용","터렛 설치 · SP "+cost+" · 3턴간 매턴 10 피해");monsterAttack(monster);return;}
     if(d.kind==="poison"){const hit=roll(100),threshold=playerHitThreshold("powerful");if(hit>threshold){record("스킬 사용","포이즌 테러 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 실패");monsterAttack(monster);return;}e.poisonTurns=3;record("스킬 사용","포이즌 테러 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 3턴간 마물 최대 HP의 1/8 피해");monsterAttack(monster);return;}
-    if(d.kind==="leech"){if(!Number.isFinite(monster.currentSp)){c.sp=before;notify("이 마물은 SP 보유량이 정해져 있지 않아 갈취할 수 없습니다.");return;}const hit=roll(100),threshold=playerHitThreshold("normal");if(hit>threshold){record("스킬 사용","갈취 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 실패");monsterAttack(monster);return;}const stolen=Math.floor(monster.currentSp/2);monster.currentSp=Math.max(0,monster.currentSp-stolen);c.sp=Math.min(c.maxSp||25,c.sp+stolen);record("스킬 사용","갈취 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 마물 현재 SP 절반 탈취 "+stolen);monsterAttack(monster);return;}
+    if(d.kind==="leech"){if(!Number.isFinite(monster.currentSp)){c.sp=Math.min(c.maxSp||25,c.sp+cost);notify("이 마물은 SP 보유량이 정해져 있지 않아 갈취할 수 없습니다.");save();renderCharacter();return;}const hit=roll(100),threshold=playerHitThreshold("normal");if(hit>threshold){record("스킬 사용","갈취 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 실패");monsterAttack(monster);return;}const stolen=Math.floor(monster.currentSp/2);monster.currentSp=Math.max(0,monster.currentSp-stolen);c.sp=Math.min(c.maxSp||25,c.sp+stolen);record("스킬 사용","갈취 · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 마물 현재 SP 절반 탈취 "+stolen);monsterAttack(monster);return;}
     if(d.kind==="heal"){
-      if(e.recoveryUsed){c.sp+=cost;notify("회복은 전투당 1회만 사용할 수 있습니다.");return;}
+      if(e.recoveryUsed){c.sp=Math.min(c.maxSp||25,c.sp+cost);notify("회복은 전투당 1회만 사용할 수 있습니다.");save();renderCharacter();return;}
       const amount=Math.floor(c.maxHp/4);c.hp=Math.min(c.maxHp,c.hp+amount);e.recoveryUsed=true;record("스킬 사용","회복 · SP "+cost+" · HP "+amount+" 회복");monsterAttack(monster);return;
     }
     if(d.kind==="attack"||d.kind==="chain"){
@@ -543,6 +543,14 @@
     const clean=text.trim().slice(0,160);
     dialogueHistory.push({speaker:"player",text:clean});
     dialogueHistory.push({speaker:"npc",text:npcResponse(currentNpc.id,clean)});
+    const npcId=currentNpc.id;
+    if(npcId==="denby"&&/상점|물건|구매/.test(clean)){closeDialogue();facilityContent("shop");}
+    else if(npcId==="hamel"&&/미믹|의뢰/.test(clean)){closeDialogue();const q=state.quests["book-mimic-hunt"];openModal("도서관 의뢰","<p>책의 미믹 3마리 처치 · "+(q.defeated||0)+"/3</p><p>보상: 20G + 스킬북 1개 + 10 LP</p>");}
+    else if(npcId==="billy"&&/부활/.test(clean)){closeDialogue();facilityContent("sanctuary");}
+    else if(npcId==="gale"&&/훈련|시작/.test(clean)){closeDialogue();facilityContent("training");}
+    else if(npcId==="bell"&&/가입/.test(clean)){closeDialogue();state.character.guild=state.character.guild||{};state.character.guild.joined=true;state.guildJoined=true;save();record("길드 가입","벨의 안내로 길드에 가입했다.");facilityContent("guild");}
+    else if(npcId==="bell"&&/의뢰/.test(clean)){closeDialogue();showGeneralQuests();}
+    else if(npcId==="cheorkol"&&/구매|판매|거래/.test(clean)){closeDialogue();facilityContent("guild");}
     renderDialogue();$("dialogueInput").value="";
     const actor=document.querySelector(".npc-actor[data-npc='"+currentNpc.id+"']");if(actor){actor.classList.add("talking");setTimeout(()=>actor.classList.remove("talking"),800);}
     record("NPC 대화", "나: "+clean+" / "+currentNpc.name+": "+dialogueHistory[dialogueHistory.length-1].text);
@@ -721,7 +729,7 @@
     const labels={strength:"근력",intelligence:"지능",defense:"방어력",luck:"행운",speed:"속도",precision:"정교함",sp:"SP"};
     const caps={strength:150,intelligence:150,defense:100,luck:100,speed:200,precision:195,sp:150};
     const rows=Object.keys(labels).map(k=>"<div class='inventory-item'><b>"+labels[k]+" "+c[k]+"/"+caps[k]+"</b><button class='primary-modal' data-stat-point='"+k+"' "+(c.statPoints>0&&c[k]<caps[k]?"":"disabled")+">+1</button></div>").join("");
-    openModal("캐릭터 정보","<p>"+escape(c.name)+" · "+escape(c.raceName)+" · "+escape(c.jobName)+" · Lv."+c.level+"</p>"+statsHtml(c)+"<p>LP "+(c.lp||0)+" / "+(c.nextLp||requiredLp(c.level))+" · 능력치 포인트 "+(c.statPoints||0)+"</p><h3>능력치 분배</h3>"+rows);
+    openModal("캐릭터 정보","<p>"+escape(c.name)+" · "+escape(c.raceName)+" · "+escape(c.jobName)+" · Lv."+c.level+"</p>"+statsHtml(c)+"<p>LP "+(c.lp||0)+" / "+(c.nextLp||requiredLp(c.level))+" · 능력치 포인트 "+(c.statPoints||0)+"</p><h3>보유 스킬</h3><p>"+(c.skills||[]).map(escape).join(" · ")+"</p><h3>장착 스킬 ("+(c.equippedSkills||[]).length+"/4)</h3><p>"+(c.equippedSkills||[]).map(escape).join(" · ")+"</p><h3>능력치 분배</h3>"+rows);
   }
   function sellGuildLoot(){
     const prices={"weak-goblin":[5,10,20],"weak-spider":[5,10,20],"goblin":[10,20,40],"treasure-mimic":[20,40,100],"book-mimic":[20,40,100]};
