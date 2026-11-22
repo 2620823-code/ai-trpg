@@ -2,8 +2,8 @@
   "use strict";
   const $ = (id) => document.getElementById(id);
   const DATA = window.AITRPG_DATA;
-  const STORAGE_KEY = "ai-trpg-prototype-v04";
-  const oldKeys = ["ai-trpg-prototype-v03", "ai-trpg-prototype-v02", "ai-trpg-prototype-v01"];
+  const STORAGE_KEY = "ai-trpg-prototype-v05";
+  const oldKeys = ["ai-trpg-prototype-v04", "ai-trpg-prototype-v03", "ai-trpg-prototype-v02", "ai-trpg-prototype-v01"];
   const defaults = {
     name: "이름 없는 모험가",
     character: null,
@@ -281,13 +281,12 @@
 
   function ensureNpcStats() {
     for (const npc of DATA.npcs) {
-      if (!state.npcStats[npc.id]) {
-        state.npcStats[npc.id] = {
-          ...generateBaseStats(npc.name),
-          status: "임시 능력치 초안",
-          source: "캐릭터 공통 주사위 범위를 임시 적용; NPC 전용 규칙 미확정"
-        };
-      }
+      state.npcStats[npc.id] = {
+        label: npc.name, hp: 300, maxHp: 300, strength: 50,
+        intelligence: 50, defense: 50, speed: 80,
+        status: "사용자 확정 공통 능력치",
+        source: "바텀웨이마을 NPC 공통 능력치"
+      };
     }
     save();
   }
@@ -656,7 +655,7 @@
         statHtml(stats) + "</details></article>";
     }).join("");
     openModal("바텀웨이마을 NPC 능력치", 
-      "<p class=\"muted\">NPC 능력치는 임시로 플레이어 공통 주사위 범위를 적용해 생성했습니다. NPC 전용 규칙과 개별 밸런스는 아직 확정되지 않았습니다.</p>" + cards);
+      "<p class=\"muted\">마을 NPC 공통 능력치: HP 300 · 근력 50 · 지능 50 · 방어력 50 · 속도 80</p>" + cards);
     record("NPC 조사", "바텀웨이마을 NPC의 임시 능력치 정보를 확인했다.");
   }
 
@@ -665,6 +664,48 @@
     void stage.offsetWidth;
     stage.classList.add(name);
     window.setTimeout(() => stage.classList.remove(name), duration);
+  }
+
+  const directionOffsets = {
+    up: [0, -28], down: [0, 20], left: [-34, 0], right: [34, 0]
+  };
+  let moveResetTimer = null;
+  function moveDirection(direction) {
+    if (!directionOffsets[direction]) return;
+    if (!state.character) { createCharacterForm(); return; }
+    if (state.activeEncounter) {
+      const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
+      if (activeMonster) displayEncounter(activeMonster);
+      return;
+    }
+    const [dx, dy] = directionOffsets[direction];
+    stage.style.setProperty("--move-x", dx + "px");
+    stage.style.setProperty("--move-y", dy + "px");
+    stage.classList.toggle("face-left", direction === "left");
+    stage.classList.toggle("face-right", direction === "right");
+    stage.classList.remove("step-up", "step-down", "step-left", "step-right");
+    void stage.offsetWidth;
+    stage.classList.add("step-" + direction, "walking");
+    window.clearTimeout(moveResetTimer);
+    moveResetTimer = window.setTimeout(() => {
+      stage.classList.remove("walking", "step-up", "step-down", "step-left", "step-right");
+      stage.style.setProperty("--move-x", "0px");
+      stage.style.setProperty("--move-y", "0px");
+    }, 420);
+    if (state.region === "forest") {
+      processForestStep();
+      if (state.activeEncounter) return;
+      if (state.groundItems.some((item) => item.location === "forest")) showForest();
+      else message("숲에서 " + ({up:"앞쪽",down:"뒤쪽",left:"왼쪽",right:"오른쪽"}[direction]) + "으로 이동했다. (" + state.forestSteps + "발자국)", "방향키로 숲을 탐험할 수 있습니다. 마물 조우 판정은 50발자국마다 진행됩니다.");
+      return;
+    }
+    const places = {
+      up: "마을 북쪽 길", down: "바텀웨이마을 광장",
+      left: "마을 시장", right: "모험가 길드 앞"
+    };
+    state.position = places[direction];
+    message(places[direction] + " 방향으로 이동했습니다.", "방향키 또는 WASD로 마을을 둘러볼 수 있습니다.");
+    record("이동", places[direction] + " 방향으로 이동했다.");
   }
 
   function message(text, gm = text) {
@@ -770,6 +811,17 @@
   $("newGameBtn").addEventListener("click", createCharacterForm);
   $("createCharacterBtn")?.addEventListener("click", createCharacterForm);
 
+  document.querySelectorAll("[data-direction]").forEach((button) => button.addEventListener("click", () => moveDirection(button.dataset.direction)));
+
+  window.addEventListener("keydown", (event) => {
+    if (event.altKey || event.ctrlKey || event.metaKey || modal.hidden === false) return;
+    const keys = { ArrowUp: "up", w: "up", W: "up", ArrowDown: "down", s: "down", S: "down", ArrowLeft: "left", a: "left", A: "left", ArrowRight: "right", d: "right", D: "right" };
+    const direction = keys[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    moveDirection(direction);
+  });
+
   $("moveBtn").addEventListener("click", () => {
     if (state.activeEncounter) {
       const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
@@ -777,7 +829,7 @@
       return;
     }
     if (!state.character) { createCharacterForm(); return; }
-    animate("walking", 650);
+    moveDirection("up");
     if (state.region === "forest") {
       processForestStep();
       if (state.activeEncounter) return;
@@ -788,7 +840,7 @@
     const places = ["바텀웨이마을 광장", "모험가 길드 앞", "마을 시장", "남쪽 마을 입구"];
     const current = places.indexOf(state.position);
     state.position = places[(current + 1 + places.length) % places.length];
-    message(state.position + "으로 이동했습니다.", "마을 주변을 살펴보세요. 숲 탐험 버튼으로 바깥 지역에 진입할 수 있습니다.");
+    message(state.position + "으로 이동했습니다.", "마을 주변을 살펴보세요. 방향키 또는 WASD로 이동할 수 있습니다.");
     record("이동", state.position + "으로 이동했다.");
   });
 
