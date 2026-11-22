@@ -68,7 +68,7 @@ window.AITRPG_DATA.statRules = {
   speed: { dice: 30, cap: 200 },
   precision: { dice: 40, cap: 195 },
   sp: { start: 25, cap: 150 },
-  note: "캐릭터 생성용 주사위 범위. NPC·마물에게 적용한 수치는 임시 테스트 초안이며 사용자 확정 규칙이 아님."
+  note: "캐릭터 생성용 주사위 범위. 바텀웨이 마을 NPC 공통 능력치는 별도 사용자 확정값을 사용."
 };
 
 window.AITRPG_DATA.races = [
@@ -99,7 +99,7 @@ window.AITRPG_DATA.regions = [
     name:"바텀웨이 숲",
     type:"field",
     status:"탐험 구역",
-    summary:"마을 바깥의 숲 탐험 구역. 50발자국마다 1d100을 굴려 20 이하이면 마물을 조우한다."
+    summary:"마을 바깥의 숲 탐험 구역. 50발자국마다 1d100을 굴려 40 이하이면 마물을 조우한다."
   }
 ];
 
@@ -113,12 +113,12 @@ window.AITRPG_DATA.monsters = [
 ];
 
 window.AITRPG_DATA.encounters = {
-  forest: {stepInterval:50,rollSides:100,encounterOnOrBelow:20,pool:["weak-goblin","weak-spider","goblin","treasure-mimic"],note:"고블린 계열의 출현 가중치는 다른 마물의 절반으로 임시 설정(0.5)."},
-  library: {stepInterval:50,rollSides:100,encounterOnOrBelow:20,pool:["book-mimic"]}
+  forest: {stepInterval:50,rollSides:100,encounterOnOrBelow:40,pool:["weak-goblin","weak-spider","goblin","treasure-mimic"],note:"고블린 계열의 출현 가중치는 다른 마물의 절반으로 임시 설정(0.5)."},
+  library: {stepInterval:50,rollSides:100,encounterOnOrBelow:40,pool:["book-mimic"]}
 };
 
 window.AITRPG_DATA.forestItems = {
-  bigApple: {id:"big-apple",name:"큰사과",type:"consumable",spawnStepMin:1,spawnStepMax:50,spawnMode:"random-step"},
+  bigApple: {id:"big-apple",name:"큰사과",type:"consumable",spawnStepMin:1,spawnStepMax:120,spawnMode:"random-step"},
   inventoryLimit:30
 };
 
@@ -147,4 +147,4 @@ window.AITRPG_DATA.npcs = [
   {id:"cheorkol",name:"처콜",facility:"길드",role:"길드 상점 담당",temperament:"돈과 사교를 좋아하며 흥정은 거절한다.",canBattle:false}
 ];
 
-window.AITRPG_DATA.statPrototypeNote = "NPC 능력치는 캐릭터 공통 주사위 범위를 임시 재사용한 테스트 값이다. NPC 전용 생성 규칙이나 전투 밸런스로 확정된 것이 아니다.";
+window.AITRPG_DATA.statPrototypeNote = "바텀웨이 마을 NPC 공통 능력치: HP 300, 근력 50, 지능 50, 방어력 50, 속도 80.";
