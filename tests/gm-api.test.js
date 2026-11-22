@@ -79,7 +79,7 @@ test("quest generation only accepts a target from the supplied allowlist", async
   global.fetch=async()=>completion({title:"임의 의뢰",description:"허용되지 않은 대상",targetMonsterId:"not-allowed",targetCount:1});
   try {
     const res=responseMock();
-    await handler({method:"POST",headers:{"x-forwarded-for":"test-quest"},body:{mode:"quest",allowedTargets:[{id:"weak-spider",name:"약골 거미"}]}},res);
+    await handler({method:"POST",headers:{"x-forwarded-for":"test-quest","x-vercel-oidc-token":"test-token"},body:{mode:"quest",allowedTargets:[{id:"weak-spider",name:"약골 거미"}]}},res);
     assert.equal(res.statusCode,502);
     assert.equal(JSON.parse(res.body).error,"INVALID_QUEST_TARGET");
   } finally { global.fetch=previous; }
@@ -95,7 +95,7 @@ test("AI GM returns exactly three story options with at least 200 characters eac
   ]});
   try{
     const res=responseMock();
-    await handler({method:"POST",headers:{"x-forwarded-for":"test-story-options"},body:{mode:"storyOptions",profile:{race:"인간",appearance:"여행자",personality:"신중함",background:"기존 설정"},feedback:"왕족 설정은 유지하고 싶지 않음"}},res);
+    await handler({method:"POST",headers:{"x-forwarded-for":"test-story-options","x-vercel-oidc-token":"test-token"},body:{mode:"storyOptions",profile:{race:"인간",appearance:"여행자",personality:"신중함",background:"기존 설정"},feedback:"왕족 설정은 유지하고 싶지 않음"}},res);
     const result=JSON.parse(res.body);
     assert.equal(res.statusCode,200);
     assert.equal(result.options.length,3);
@@ -112,7 +112,7 @@ test("AI GM rejects generated story options shorter than 200 characters", async 
   ]});
   try{
     const res=responseMock();
-    await handler({method:"POST",headers:{"x-forwarded-for":"test-story-short"},body:{mode:"storyOptions",profile:{race:"인간"}}},res);
+    await handler({method:"POST",headers:{"x-forwarded-for":"test-story-short","x-vercel-oidc-token":"test-token"},body:{mode:"storyOptions",profile:{race:"인간"}}},res);
     assert.equal(res.statusCode,502);
     assert.equal(JSON.parse(res.body).error,"INVALID_STORY_OPTIONS");
   }finally{global.fetch=previous;}
