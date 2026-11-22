@@ -373,6 +373,9 @@
     if(x.variantOf){const base=DATA.monsters.find(m=>m.id===x.variantOf);return base?{...base,...x,stats:{...base.stats}}:x;}return x;
   }
   function weaponBonus(){const w=state.character?.equipment?.weapon;return w?Number(w.bonus||0):0;}
+  function armorBonus(){const a=state.character?.equipment?.armor;if(!a)return 0;if(Number.isFinite(a.defense))return a.defense;const m=String(a.effect||"").match(/방어력\s*\+\s*(\d+)/);return m?Number(m[1]):Number(a.bonus||0);}
+  function effectiveDefense(c){return (c.defense||0)+armorBonus();}
+  function canBuyItem(item){const restriction=item.restriction||"",job=state.character&&state.character.jobId;return !(/검사 계열/.test(restriction)&&job!=="swordsman"||/도적 계열/.test(restriction)&&job!=="rogue"||/격투가 전용/.test(restriction)&&job!=="fighter"||/마법사·암흑술사 전용/.test(restriction)&&!["mage","dark-mage"].includes(job)||/기술자·검사·도적 계열 전용/.test(restriction)&&!["technician","swordsman","rogue"].includes(job)||/마법사·암흑술사·주술사·마검사·마도구학자/.test(restriction)&&!["mage","dark-mage","shaman","magic-swordsman","arcane-tool-scholar"].includes(job));}
   function skillCost(name,c){const d=SKILL_BOOK[name];if(!d)return Infinity;if(d.sp===0)return 0;const a=c.skillAwakenings&&c.skillAwakenings[name];return Math.max(1,d.sp-((a&&a.spReduction)||0));}
   function playerHitThreshold(tier){return tier==="ultimate"?44:tier==="powerful"?49:55;}
   function showSkillList(){
@@ -388,7 +391,7 @@
     const c=state.character,e=state.activeEncounter;if(!c||!e)return;
     const skills={"weak-goblin":{name:"돌진",damage:monster.stats.strength*1.2,physical:true},"weak-spider":{name:"물기",damage:monster.stats.strength*1.5,physical:true},"goblin":{name:"펀치",damage:monster.stats.strength*1.6,physical:true},"treasure-mimic":{name:"염력",damage:(monster.stats.strength+monster.stats.intelligence)*1.9,physical:false},"book-mimic":{name:"염력",damage:(monster.stats.strength+monster.stats.intelligence)*1.9,physical:false}};
     const skill=skills[monster.id]||{name:"공격",damage:monster.stats.strength,physical:true};
-    const hit=roll(100),def=roll(100),hitOK=hit<=55,defLimit=50+(c.defense||0)/4,parry=!!e.parryReady,defOK=parry||def<=defLimit;
+    const hit=roll(100),def=roll(100),hitOK=hit<=55,defLimit=50+effectiveDefense(c)/4,parry=!!e.parryReady,defOK=parry||def<=defLimit;
     const damage=hitOK?Math.floor(skill.damage*(defOK?0.25:1)):0;
     if(skill.physical&&e.counterReady){const reflected=damage*2;e.hp=Math.max(0,e.hp-reflected);record("카운터 반격","받은 물리 피해 "+damage+" · 반격 피해 "+reflected);}
     e.counterReady=false;
@@ -826,8 +829,7 @@
       const f=facilities.find(x=>x.id==="shop"),item=f&&f.items[Number(t.dataset.buy)];
       if(item){
         if(state.gold<item.price){notify("골드가 부족합니다.");return;}
-        const restriction=item.restriction||"";
-        if(/검사 계열/.test(restriction)&&state.character.jobId!=="swordsman"||/도적 계열/.test(restriction)&&state.character.jobId!=="rogue"||/격투가 전용/.test(restriction)&&state.character.jobId!=="fighter"||/마법사·암흑술사 전용/.test(restriction)&&!["mage","dark-mage"].includes(state.character.jobId)||/기술자·검사·도적 계열 전용/.test(restriction)&&!["technician","swordsman","rogue"].includes(state.character.jobId)||/마법사·암흑술사·주술사·마검사·마도구학자/.test(restriction)&&!["mage","dark-mage","shaman","magic-swordsman","arcane-tool-scholar"].includes(state.character.jobId)){notify("현재 직업은 구매할 수 없습니다.");return;}
+        if(!canBuyItem(item)){notify("현재 직업은 구매할 수 없습니다.");return;}
         if(state.inventory.length>=30){notify("인벤토리가 가득 찼습니다.");return;}
         const bonusMatch=item.effect.match(/(?:보정치|보정)\s*\+\s*(\d+)/),ppMatch=item.effect.match(/PP\s*(\d+)/);
         const weapon=item.type==="무기";
@@ -836,7 +838,7 @@
         save();renderCharacter();record("상점 구매",item.name+" · "+item.price+"G");facilityContent("shop");
       }
     }
-    if(t.dataset.guildBuy!==undefined){const shop=facilities.find(x=>x.id==="shop"),item=shop&&shop.items[Number(t.dataset.guildBuy)];if(item){t.dataset.buy=String(t.dataset.guildBuy);const f=facilities.find(x=>x.id==="shop");if(state.gold<item.price)notify("골드가 부족합니다.");else if(state.inventory.length>=30)notify("인벤토리가 가득 찼습니다.");else{const bonusMatch=item.effect.match(/(?:보정치|보정)\s*\+\s*(\d+)/),ppMatch=item.effect.match(/PP\s*(\d+)/),weapon=item.type==="무기";const obj={id:"shop-"+Number(t.dataset.guildBuy),name:item.name,type:weapon?"무기":item.type==="회복"?"소모품":item.type,effect:item.effect,bonus:bonusMatch?Number(bonusMatch[1]):0,pp:ppMatch?Number(ppMatch[1]):weapon?10:0,maxPp:ppMatch?Number(ppMatch[1]):weapon?10:0,restriction:item.restriction};obj.instanceId=Date.now()+"-"+Math.random().toString(36).slice(2);state.gold-=item.price;state.inventory.push(obj);save();renderCharacter();record("길드 상점 구매",item.name+" · "+item.price+"G");facilityContent("guild");}}}
+    if(t.dataset.guildBuy!==undefined){const shop=facilities.find(x=>x.id==="shop"),item=shop&&shop.items[Number(t.dataset.guildBuy)];if(item){if(!canBuyItem(item)){notify("현재 직업은 구매할 수 없습니다.");return;}if(state.gold<item.price)notify("골드가 부족합니다.");else if(state.inventory.length>=30)notify("인벤토리가 가득 찼습니다.");else{const bonusMatch=item.effect.match(/(?:보정치|보정)\s*\+\s*(\d+)/),ppMatch=item.effect.match(/PP\s*(\d+)/),weapon=item.type==="무기";const obj={id:"shop-"+Number(t.dataset.guildBuy),name:item.name,type:weapon?"무기":item.type==="회복"?"소모품":item.type,effect:item.effect,bonus:bonusMatch?Number(bonusMatch[1]):0,pp:ppMatch?Number(ppMatch[1]):weapon?10:0,maxPp:ppMatch?Number(ppMatch[1]):weapon?10:0,restriction:item.restriction};obj.instanceId=Date.now()+"-"+Math.random().toString(36).slice(2);state.gold-=item.price;state.inventory.push(obj);save();renderCharacter();record("길드 상점 구매",item.name+" · "+item.price+"G");facilityContent("guild");}}}
     if(t.dataset.useItem)useInventoryItem(t.dataset.useItem);
   });
   document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
