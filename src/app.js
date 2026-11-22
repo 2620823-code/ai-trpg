@@ -268,6 +268,7 @@
     hero.classList.add("walking");clearTimeout(moveTimer);moveTimer=setTimeout(()=>hero.classList.remove("walking"),260);
     renderMapCamera();
     if(state.region==="forest") processForestStep();
+    else if(state.region==="facility-library") processLibraryStep();
     else {
       const f=nearestFacility(),n=nearestNpc();
       if(state.region==="village"&&f&&f.distance<135) message(f.facility.name+" 입구에 가까이 왔습니다. E 키로 입장하세요.");
@@ -293,6 +294,12 @@
   function addGround(item,location) {
     state.groundItems.push({...item,instanceId:Date.now()+"-"+Math.random().toString(36).slice(2),location,worldX:state.worldX+72,worldY:state.worldY+20});
   }
+  function processLibraryStep(){
+    state.librarySteps=(state.librarySteps||0)+1;
+    if(state.librarySteps%50!==0)return;
+    const d=roll(100);record("도서관 미믹 조우 판정","1d100 = "+d+" · 출현 조건 40 이하");
+    if(d<=40){const m=DATA.monsters.find(x=>x.id==="book-mimic"),base=DATA.monsters.find(x=>x.id==="weak-mimic");if(m&&base){const monster={...base,...m,stats:{...base.stats}};state.activeEncounter={monsterId:m.id,location:"library",hp:base.stats.hp,maxHp:base.stats.hp,turn:0};save();if(monster.stats.speed>(state.character.speed||0))monsterAttack(monster);else showEncounter(monster);}}
+  }
   function processForestStep() {
     state.forestSteps++;
     scheduleApple();
@@ -317,7 +324,7 @@
   }
   function encounterRoll() {
     const d=roll(100);record("숲 조우 판정","1d100 = "+d+" · 출현 조건 40 이하 · "+(d<=40?"출현":"미출현"));
-    if(d<=40){const monster=chooseMonster();if(monster){state.activeEncounter={monsterId:monster.id,location:"forest"};save();showEncounter(monster);}}
+    if(d<=40){const monster=chooseMonster();if(monster){state.activeEncounter={monsterId:monster.id,location:"forest",hp:monster.stats.hp,maxHp:monster.stats.hp,turn:0};save();if(monster.stats.speed>(state.character.speed||0))monsterAttack(monster);else showEncounter(monster);}}
     else {message("이번에는 마물이 나타나지 않았습니다.","조우 주사위 1d100 = "+d+" · 40 이하 출현");notify("마물이 나타나지 않았다");}
   }
   function showEncounter(monster) {
@@ -369,7 +376,7 @@
     if(tier>=0&&loot){found=loot[tier];addItem({id:"loot-"+monster.id+"-"+tier,name:found,type:"마물 유해",quality:["저급","중급","고급"][tier]});}
     if(monster.id==="book-mimic"){
       const q=state.quests["book-mimic-hunt"];q.defeated=(q.defeated||0)+1;
-      if(q.defeated>=3&&!q.rewarded){q.rewarded=true;state.gold+=20;addItem({id:"skill-book",name:"스킬북",type:"서적"});record("의뢰 완료","책의 미믹 3마리 처치 · 20G와 스킬북 획득");}
+      if(q.defeated>=3&&!q.rewarded){q.rewarded=true;state.gold+=20;addItem({id:"skill-book",name:"스킬북",type:"서적"});grantLp(10,"도서관 의뢰 성공");record("의뢰 완료","책의 미믹 3마리 처치 · 20G, 스킬북, 10 LP 획득");}
     }
     state.activeEncounter=null;grantLp(5,"마물 "+monster.name+" 처치");
     record("전리품 판정","1d100="+d+" · "+found);save();closeModal();renderCharacter();
@@ -425,6 +432,7 @@
   function enterFacility(id) {
     if(!state.character){characterForm();return;}
     if(!facilities.some(f=>f.id===id))return;
+    if(id==="library"&&!(state.character.guild&&state.character.guild.joined)&&!state.libraryPaid){if(state.gold<20){notify("도서관 입장료 20G가 부족합니다.");return;}state.gold-=20;state.libraryPaid=true;record("도서관 입장료","20G 지불");renderCharacter();}
     setRegion("facility-"+id);record("시설 입장",facilityTitle(id)+"에 들어왔다.");notify(facilityTitle(id)+" 내부");
   }
   function exitFacility() { setRegion("village");record("시설 퇴장","바텀웨이마을로 돌아왔다."); }
@@ -500,6 +508,9 @@
     const f=facilities.find(x=>x.id===id);if(!f)return;
     let html="<p>"+escape(f.summary)+"</p>";
     if(f.entryFee!==undefined) html+="<p>입장료: "+f.entryFee+"G</p>";
+    if(f.id==="training")html+="<p>훈련 게이지: "+((state.character.training&&state.character.training.gauge)||0)+"/8</p><button class='primary-modal' id='startTraining'>훈련 20턴 시작 (20G)</button>";
+    if(f.id==="guild")html+="<p>길드 등록: "+(state.character.guild&&state.character.guild.joined?"가입 완료":"미가입")+"</p><button class='primary-modal' id='joinGuild'>무료 길드 가입</button>";
+    if(f.id==="sanctuary"&&state.character.dead)html+="<button class='primary-modal' id='revivePlayer'>부활 (200G)</button>";
     if(f.items) html+="<h3>판매 목록</h3><div class='shop-list'>"+f.items.map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-buy='"+i+"'>구매</button></div>").join("")+"</div><p>큰사과는 개당 5G에 판매할 수 있습니다.</p><button class='primary-modal' id='sellApples'>큰사과 판매</button>";
     if(f.rules)html+="<h3>이용 규칙</h3><ul>"+f.rules.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
     if(f.books)html+="<h3>소장 도서</h3><ul>"+f.books.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
