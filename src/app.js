@@ -601,6 +601,64 @@
     const slots=state.inventory.map((item,i)=>"<div class='inventory-item'><b>"+(i+1)+". "+escape(item.name)+"</b><small>"+escape(item.type||"아이템")+(item.type==="무기"?" · PP "+item.pp+"/"+item.maxPp:"")+"</small><button class='primary-modal' data-use-item='"+escape(item.instanceId)+"'>"+(item.type==="무기"?"장착":item.type==="소모품"||item.id==="big-apple"?"사용":"정보")+"</button></div>").join("");
     openModal("가방","<p>아이템 "+state.inventory.length+" / 30칸 · 보유 골드 "+state.gold+"G</p><h3>장착 칸</h3><div class='inventory-item'><b>무기</b><small>"+(weapon?escape(weapon.name)+" · PP "+weapon.pp+"/"+weapon.maxPp:"비어 있음")+"</small></div>"+(slots||"<p>보유한 아이템이 없습니다.</p>"));
   }
+  function grantSkill(skill,source){
+    const c=state.character;if(!c)return false;
+    c.skills=c.skills||[];c.equippedSkills=c.equippedSkills||[];
+    if(c.skills.includes(skill)){notify("이미 습득한 스킬입니다.");return false;}
+    c.skills.push(skill);record("스킬 습득",skill+" · "+source);
+    if(c.equippedSkills.length<4){c.equippedSkills.push(skill);save();renderCharacter();openModal("스킬 습득","<p>"+escape(skill)+"을(를) 습득하고 장착했습니다.</p>");}
+    else{c.pendingEquipSkill=skill;save();openSkillReplacement();}
+    return true;
+  }
+  function openSkillReplacement(){
+    const c=state.character;if(!c||!c.pendingEquipSkill)return;
+    const buttons=(c.equippedSkills||[]).map(x=>"<button class='primary-modal' data-replace-skill='"+escape(x)+"'>"+escape(x)+" 교체</button>").join("");
+    openModal("스킬 슬롯 교체","<p>"+escape(c.pendingEquipSkill)+"을(를) 장착하려면 기존 스킬 하나를 교체해야 합니다. 보유 스킬 자체는 삭제되지 않습니다.</p>"+buttons);
+  }
+  function replaceEquippedSkill(oldSkill){
+    const c=state.character;if(!c||!c.pendingEquipSkill)return;
+    const i=c.equippedSkills.indexOf(oldSkill);if(i<0)return;
+    const next=c.pendingEquipSkill;c.equippedSkills[i]=next;delete c.pendingEquipSkill;
+    record("스킬 장착",oldSkill+" → "+next);save();renderCharacter();openModal("장착 완료","<p>"+escape(next)+"을(를) 장착했습니다.</p>");
+  }
+  function readSkillBook(item){
+    const c=state.character;if(!c)return;
+    const id=item.id||item.name;c.readBooks=c.readBooks||[];
+    if(c.readBooks.includes(id)){notify("이미 읽은 책입니다. 같은 책은 다시 읽을 수 없습니다.");return;}
+    const pools={
+      "swordsman":["스윙"],"mage":["파이어볼","스피릿"],"technician":["테이저"],"fighter":["연속타"],"rogue":["갈취"]
+    };
+    let skill=null;
+    if(id==="shop-8"||/기초 마법서/.test(item.name)){
+      if(!["mage","dark-mage","shaman","magic-swordsman","arcane-tool-scholar"].includes(c.jobId)){notify("현재 직업은 이 책을 읽을 수 없습니다.");return;}
+      skill="파이어볼";
+    }else if(id==="shop-9"||/기초 훈련서/.test(item.name)){
+      if(c.jobId!=="fighter"){notify("격투가 전용 책입니다.");return;}
+      skill="연속타";
+    }else if(/중급 마법서/.test(item.name)){
+      if(c.jobId!=="mage"){notify("현재 직업은 이 책을 읽을 수 없습니다.");return;}
+      skill="아이스 에이지";
+    }else if(/검술서/.test(item.name)){
+      if(c.jobId!=="swordsman"){notify("검사 계열 전용 책입니다.");return;}
+      skill="검기";
+    }else if(/기술서/.test(item.name)){
+      if(c.jobId!=="technician"){notify("기술자 전용 책입니다.");return;}
+      skill="폭발 지뢰";
+    }else if(/훈련서/.test(item.name)){
+      if(c.jobId!=="fighter"){notify("격투가 전용 책입니다.");return;}
+      skill="기합타격";
+    }else if(/저급 스킬북|스킬북/.test(item.name)||id==="shop-10"){
+      const pool=pools[c.jobId]||[];const available=pool.filter(x=>!(c.skills||[]).includes(x));
+      if(!available.length){notify("현재 직업으로 습득할 수 있는 저급 스킬이 없거나 모두 배웠습니다.");return;}
+      skill=available[roll(available.length)-1];
+    }else{
+      openModal(item.name,"<p>이 책은 정보 열람용입니다. 도서관에서 내용을 확인할 수 있습니다.</p>");return;
+    }
+    if(!grantSkill(skill,item.name))return;
+    c.readBooks.push(id);
+    const index=state.inventory.findIndex(x=>x.instanceId===item.instanceId);if(index>=0)state.inventory.splice(index,1);
+    save();renderCharacter();
+  }
   function useInventoryItem(instanceId){
     const index=state.inventory.findIndex(x=>x.instanceId===instanceId);if(index<0)return;
     const item=state.inventory[index],c=state.character;if(!c)return;
@@ -615,6 +673,8 @@
       if(!heal){notify("사용할 수 없는 아이템입니다.");return;}
       if(c.hp>=c.maxHp){notify("HP가 이미 최대치입니다.");return;}
       c.hp=Math.min(c.maxHp,c.hp+heal);state.inventory.splice(index,1);record("아이템 사용",item.name+" · HP "+heal+" 회복");
+    }else if(item.type==="서적"||item.type==="skill-book"||item.id==="skill-book"){
+      readSkillBook(item);return;
     }else if(item.id==="training-result"){
       const skills=(c.skills||[]).map(x=>"<button class='primary-modal' data-awaken-skill='"+escape(x)+"'>"+escape(x)+" 각성</button>").join("");
       openModal("훈련의 성과 사용","<p>각성할 스킬을 선택하세요. 스킬당 최대 3회입니다.</p>"+skills);return;
@@ -725,6 +785,7 @@
     if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
     if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
     if(t.dataset.useSkill)useBattleSkill(t.dataset.useSkill);
+    if(t.dataset.replaceSkill)replaceEquippedSkill(t.dataset.replaceSkill);
     if(t.dataset.awakenSkill){openModal("스킬 각성 방식","<p>"+escape(t.dataset.awakenSkill)+"의 각성 효과를 선택하세요.</p><button class='primary-modal' data-awaken-mode='sp' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>SP 소모량 -0.5</button><button class='primary-modal' data-awaken-mode='power' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>위력 배율 +0.1</button>");}
     if(t.dataset.awakenMode)awakenSkill(t.dataset.awakenTarget,t.dataset.awakenMode);
     if(t.dataset.statPoint)spendStatPoint(t.dataset.statPoint);
