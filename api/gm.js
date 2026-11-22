@@ -46,7 +46,7 @@ module.exports=async function handler(req,res){
       const background=String(profile.background||"").slice(0,3000);
       if(background.length<200)return send(res,400,{error:"BACKGROUND_TOO_SHORT",message:"배경 설정은 200자 이상이어야 합니다."});
       const payload=JSON.stringify({race:profile.race,job:profile.job,appearance:String(profile.appearance||"").slice(0,500),personality:String(profile.personality||"").slice(0,500),background});
-      const prompt="다음 캐릭터 설정을 세 명의 독립 심사관 관점으로 검토하라. 1) 세계관·연대기 심사관 2) 능력·밸런스 심사관 3) 바텀웨이마을 도착 경위·플레이 가능성 심사관. 각자 통과/수정 필요, 근거, 플레이 가능한 수정 제안을 짧게 작성한다. 종족과 직업은 플레이어 선택이므로 변경하지 않는다. 초능력·왕위·신적 존재·전설급 장비·세계의 핵심 사건 해결 등 과도한 설정은 플레이어가 아직 획득하지 않은 것으로 조정한다. 세 심사관이 모두 통과해야 overall='pass'. 응답은 JSON 객체 {overall:'pass'|'revise',reviews:[{reviewer,verdict,reason,suggestion}]}만 반환한다. 세계 규칙: "+WORLD_RULES.join(" ");
+      const prompt="다음 캐릭터 설정을 세 명의 독립 심사관 관점으로 검토하라. 1) 세계관·연대기 심사관 2) 능력·밸런스 심사관 3) 바텀웨이마을 도착 경위·플레이 가능성 심사관. 각자 통과/수정 필요, 근거, 플레이 가능한 수정 제안을 짧게 작성한다. 종족은 플레이어가 선택하므로 변경하지 않는다. 캐릭터 생성 단계에서는 직업을 정하지 않으며, 길드 가입 후 NPC 욘이 별도로 배정한다. 초능력·왕위·신적 존재·전설급 장비·세계의 핵심 사건 해결 등 과도한 설정은 플레이어가 아직 획득하지 않은 것으로 조정한다. 세 심사관이 모두 통과해야 overall='pass'. 응답은 JSON 객체 {overall:'pass'|'revise',reviews:[{reviewer,verdict,reason,suggestion}]}만 반환한다. 세계 규칙: "+WORLD_RULES.join(" ");
       const text=await ask(req,[{role:"system",content:prompt},{role:"user",content:payload}],900,true);
       let result;try{result=JSON.parse(text.replace(/^\s*```json\s*|\s*```\s*$/g,""));}catch{return send(res,502,{error:"INVALID_REVIEW_FORMAT"});}
       const reviews=Array.isArray(result.reviews)?result.reviews.slice(0,3):[];
