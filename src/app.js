@@ -501,7 +501,7 @@
     if(!state.character){characterForm();return;}
     if(!facilities.some(f=>f.id===id))return;
     if(id==="library"&&!(state.character.guild&&state.character.guild.joined)){if(state.gold<20){notify("도서관 입장료 20G가 부족합니다.");return;}state.gold-=20;record("도서관 입장료","20G 지불");renderCharacter();}
-    setRegion("facility-"+id);record("시설 입장",facilityTitle(id)+"에 들어왔다.");notify(facilityTitle(id)+" 내부");
+    setRegion("facility-"+id);record("시설 입장",facilityTitle(id)+"에 들어왔다.");notify(facilityTitle(id)+" 내부");facilityContent(id);
   }
   function exitFacility() { setRegion("village");record("시설 퇴장","바텀웨이마을로 돌아왔다."); }
   function interact() {
@@ -644,6 +644,7 @@
       html+="<h3>길드 상점</h3><p>마을 상점과 동일한 판매 가격을 적용합니다.</p><div class='shop-list'>"+(shop.items||[]).map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-guild-buy='"+i+"'>구매</button></div>").join("")+"</div>";
       html+="<h3>물품 매입</h3><p>큰사과와 마물 유해를 매입합니다.</p><button class='primary-modal' id='sellGuildLoot'>매입 가능한 물품 판매</button><h3>길드 게시판</h3><p>중요 의뢰와 기초 의뢰는 사용자 설정을 따릅니다.</p><button class='primary-modal' id='showGeneralQuests'>일반 의뢰 게시판</button>";
     }
+    html+="<button class='primary-modal' id='exitFacility'>마을로 나가기</button>";
     openModal(f.name+" · 시설 이용",html);
   }
   function showInventory() {
@@ -872,6 +873,7 @@
     if(t.id==="showGeneralQuests")showGeneralQuests();
     if(t.id==="generateGeneralQuest")generateGeneralQuest();
     if(t.dataset.acceptQuest)acceptGeneralQuest(t.dataset.acceptQuest);
+    if(t.id==="exitFacility"){closeModal();exitFacility();}
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
     if(t.dataset.libraryBook)readLibraryBook(t.dataset.libraryBook);
