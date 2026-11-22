@@ -162,8 +162,8 @@
       ["행운", stats.luck],
       ["속도", stats.speed],
       ["정교함", stats.precision],
-      ["SP", stats.sp + " / " + stats.maxSp]
-    ];
+      ["SP", stats.sp == null ? null : stats.sp + " / " + stats.maxSp]
+    ].filter((row) => row[1] != null);
     const html = rows.map(([name, value]) =>
       "<tr><th>" + name + "</th><td>" + value + "</td></tr>"
     ).join("");
@@ -822,27 +822,7 @@
     moveDirection(direction);
   });
 
-  $("moveBtn").addEventListener("click", () => {
-    if (state.activeEncounter) {
-      const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
-      if (activeMonster) displayEncounter(activeMonster);
-      return;
-    }
-    if (!state.character) { createCharacterForm(); return; }
-    moveDirection("up");
-    if (state.region === "forest") {
-      processForestStep();
-      if (state.activeEncounter) return;
-      if (state.groundItems.some((item) => item.location === "forest")) showForest();
-      else message("숲을 한 걸음 이동했다. (" + state.forestSteps + "발자국)", "50발자국마다 마물 조우 판정이 진행됩니다.");
-      return;
-    }
-    const places = ["바텀웨이마을 광장", "모험가 길드 앞", "마을 시장", "남쪽 마을 입구"];
-    const current = places.indexOf(state.position);
-    state.position = places[(current + 1 + places.length) % places.length];
-    message(state.position + "으로 이동했습니다.", "마을 주변을 살펴보세요. 방향키 또는 WASD로 이동할 수 있습니다.");
-    record("이동", state.position + "으로 이동했다.");
-  });
+  $("moveBtn").addEventListener("click", () => moveDirection("up"));
 
   $("forestBtn").addEventListener("click", () => {
     if (state.activeEncounter) {
