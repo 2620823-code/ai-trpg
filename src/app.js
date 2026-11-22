@@ -540,20 +540,19 @@
   }
   function sendDialogue(text) {
     if(!currentNpc||!text.trim())return;
-    const clean=text.trim().slice(0,160);
-    dialogueHistory.push({speaker:"player",text:clean});
-    dialogueHistory.push({speaker:"npc",text:npcResponse(currentNpc.id,clean)});
-    const npcId=currentNpc.id;
-    if(npcId==="denby"&&/상점|물건|구매/.test(clean)){closeDialogue();facilityContent("shop");}
-    else if(npcId==="hamel"&&/미믹|의뢰/.test(clean)){closeDialogue();const q=state.quests["book-mimic-hunt"];openModal("도서관 의뢰","<p>책의 미믹 3마리 처치 · "+(q.defeated||0)+"/3</p><p>보상: 20G + 스킬북 1개 + 10 LP</p>");}
-    else if(npcId==="billy"&&/부활/.test(clean)){closeDialogue();facilityContent("sanctuary");}
-    else if(npcId==="gale"&&/훈련|시작/.test(clean)){closeDialogue();facilityContent("training");}
-    else if(npcId==="bell"&&/가입/.test(clean)){closeDialogue();state.character.guild=state.character.guild||{};state.character.guild.joined=true;state.guildJoined=true;save();record("길드 가입","벨의 안내로 길드에 가입했다.");facilityContent("guild");}
-    else if(npcId==="bell"&&/의뢰/.test(clean)){closeDialogue();showGeneralQuests();}
-    else if(npcId==="cheorkol"&&/구매|판매|거래/.test(clean)){closeDialogue();facilityContent("guild");}
+    const clean=text.trim().slice(0,160),npc=currentNpc;
+    const reply=npcResponse(npc.id,clean);
+    dialogueHistory.push({speaker:"player",text:clean},{speaker:"npc",text:reply});
     renderDialogue();$("dialogueInput").value="";
-    const actor=document.querySelector(".npc-actor[data-npc='"+currentNpc.id+"']");if(actor){actor.classList.add("talking");setTimeout(()=>actor.classList.remove("talking"),800);}
-    record("NPC 대화", "나: "+clean+" / "+currentNpc.name+": "+dialogueHistory[dialogueHistory.length-1].text);
+    const actor=document.querySelector(".npc-actor[data-npc='"+npc.id+"']");if(actor){actor.classList.add("talking");setTimeout(()=>actor.classList.remove("talking"),800);}
+    record("NPC 대화","나: "+clean+" / "+npc.name+": "+reply);
+    if(npc.id==="denby"&&/상점|물건|구매/.test(clean)){closeDialogue();facilityContent("shop");}
+    else if(npc.id==="hamel"&&/미믹|의뢰/.test(clean)){closeDialogue();const q=state.quests["book-mimic-hunt"];openModal("도서관 의뢰","<p>책의 미믹 3마리 처치 · "+(q.defeated||0)+"/3</p><p>보상: 20G + 스킬북 1개 + 10 LP</p>");}
+    else if(npc.id==="billy"&&/부활/.test(clean)){closeDialogue();facilityContent("sanctuary");}
+    else if(npc.id==="gale"&&/훈련|시작/.test(clean)){closeDialogue();facilityContent("training");}
+    else if(npc.id==="bell"&&/가입/.test(clean)){closeDialogue();state.character.guild=state.character.guild||{};state.character.guild.joined=true;state.guildJoined=true;save();record("길드 가입","벨의 안내로 길드에 가입했다.");facilityContent("guild");}
+    else if(npc.id==="bell"&&/의뢰/.test(clean)){closeDialogue();showGeneralQuests();}
+    else if(npc.id==="cheorkol"&&/구매|판매|거래/.test(clean)){closeDialogue();facilityContent("guild");}
   }
   function closeDialogue() { dialogueScreen.hidden=true;currentNpc=null;hero.classList.remove("talking"); }
 
