@@ -560,8 +560,34 @@
       if(!heal){notify("사용할 수 없는 아이템입니다.");return;}
       if(c.hp>=c.maxHp){notify("HP가 이미 최대치입니다.");return;}
       c.hp=Math.min(c.maxHp,c.hp+heal);state.inventory.splice(index,1);record("아이템 사용",item.name+" · HP "+heal+" 회복");
+    }else if(item.id==="training-result"){
+      const skills=(c.skills||[]).map(x=>"<button class='primary-modal' data-awaken-skill='"+escape(x)+"'>"+escape(x)+" 각성</button>").join("");
+      openModal("훈련의 성과 사용","<p>각성할 스킬을 선택하세요. 스킬당 최대 3회입니다.</p>"+skills);return;
     }else{openModal(item.name,"<p>"+escape(item.effect||"서적 또는 재료 아이템")+"</p>");return;}
     save();renderCharacter();showInventory();
+  }
+  function awakenSkill(skill,mode){
+    const c=state.character,itemIndex=state.inventory.findIndex(x=>x.id==="training-result");if(itemIndex<0)return;
+    c.skillAwakenings=c.skillAwakenings||{};const data=c.skillAwakenings[skill]||{count:0,spReduction:0,multiplierBonus:0};
+    if(data.count>=3){notify("해당 스킬은 최대 3회 각성했습니다.");return;}
+    if(mode==="sp")data.spReduction=Math.min(0.5*(data.count+1),data.spReduction+0.5);
+    else data.multiplierBonus+=0.1;
+    data.count++;c.skillAwakenings[skill]=data;state.inventory.splice(itemIndex,1);
+    record("스킬 각성",skill+" · "+(mode==="sp"?"SP 소모량 0.5 감소":"위력 배율 +0.1")+" · "+data.count+"/3");save();renderCharacter();openModal("각성 완료","<p>"+escape(skill)+" · "+data.count+"/3회</p><p>"+(mode==="sp"?"SP 소모량 감소를 선택했습니다.":"위력 배율 강화를 선택했습니다.")+"</p>");
+  }
+  function spendStatPoint(key){
+    const c=state.character;if(!c||!(c.statPoints>0))return;
+    const caps={strength:150,intelligence:150,defense:100,luck:100,speed:200,precision:195,sp:150};
+    if(!(key in caps)||c[key]>=caps[key]){notify("해당 능력치는 상한에 도달했습니다.");return;}
+    c[key]++;if(key==="sp")c.maxSp=c.sp=Math.min(caps.sp,(c.maxSp||25)+1);
+    c.statPoints--;record("능력치 성장",key+" +1 · 남은 포인트 "+c.statPoints);save();renderCharacter();openCharacterPanel();
+  }
+  function openCharacterPanel(){
+    const c=state.character;if(!c)return;
+    const labels={strength:"근력",intelligence:"지능",defense:"방어력",luck:"행운",speed:"속도",precision:"정교함",sp:"SP"};
+    const caps={strength:150,intelligence:150,defense:100,luck:100,speed:200,precision:195,sp:150};
+    const rows=Object.keys(labels).map(k=>"<div class='inventory-item'><b>"+labels[k]+" "+c[k]+"/"+caps[k]+"</b><button class='primary-modal' data-stat-point='"+k+"' "+(c.statPoints>0&&c[k]<caps[k]?"":"disabled")+">+1</button></div>").join("");
+    openModal("캐릭터 정보","<p>"+escape(c.name)+" · "+escape(c.raceName)+" · "+escape(c.jobName)+" · Lv."+c.level+"</p>"+statsHtml(c)+"<p>LP "+(c.lp||0)+" / "+(c.nextLp||requiredLp(c.level))+" · 능력치 포인트 "+(c.statPoints||0)+"</p><h3>능력치 분배</h3>"+rows);
   }
   function sellGuildLoot(){
     const prices={"weak-goblin":[5,10,20],"weak-spider":[5,10,20],"goblin":[10,20,40],"treasure-mimic":[20,40,100],"book-mimic":[20,40,100]};
@@ -643,6 +669,9 @@
     if(t.id==="leaveEncounter")leaveEncounter();
     if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
     if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
+    if(t.dataset.awakenSkill){openModal("스킬 각성 방식","<p>"+escape(t.dataset.awakenSkill)+"의 각성 효과를 선택하세요.</p><button class='primary-modal' data-awaken-mode='sp' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>SP 소모량 -0.5</button><button class='primary-modal' data-awaken-mode='power' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>위력 배율 +0.1</button>;}
+    if(t.dataset.awakenMode)awakenSkill(t.dataset.awakenTarget,t.dataset.awakenMode);
+    if(t.dataset.statPoint)spendStatPoint(t.dataset.statPoint);
     if(t.id==="sellApples")sellApples();
     if(t.id==="sellGuildLoot")sellGuildLoot();
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
@@ -675,7 +704,7 @@
   });
   document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
     const v=b.dataset.view;
-    if(v==="character"){if(state.character)openModal("캐릭터 정보","<p>"+escape(state.character.name)+" · "+escape(state.character.raceName)+" · "+escape(state.character.jobName)+" · Lv."+state.character.level+"</p>"+statsHtml(state.character));else characterForm();}
+    if(v==="character"){if(state.character)openCharacterPanel();else characterForm();}
     if(v==="inventory")showInventory();if(v==="map")showMap();if(v==="npcs")showNpcs();
     if(v==="story")openModal("스토리 기록","<p>1876년, 인간 제국 남부의 바텀웨이마을에서 모험을 시작합니다.</p><p>기록된 행동: "+state.actions.length+"건</p>");
   }));
