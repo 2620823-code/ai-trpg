@@ -48,3 +48,93 @@ window.AITRPG_DATA = {
     }
   ]
 };
+
+window.AITRPG_DATA.statRules = {
+  hp: { dice: 250, floor: 150, cap: 1000 },
+  strength: { dice: 50, cap: 150 },
+  intelligence: { dice: 50, cap: 150 },
+  defense: { dice: 50, cap: 100 },
+  luck: { dice: 25, cap: 100 },
+  speed: { dice: 30, cap: 200 },
+  precision: { dice: 40, cap: 195 },
+  sp: { start: 25, cap: 150 },
+  note: "캐릭터 생성용 주사위 범위. NPC·마물에게 적용한 수치는 임시 테스트 초안이며 사용자 확정 규칙이 아님."
+};
+
+window.AITRPG_DATA.races = [
+  {id:"human",name:"인간",bonus:{strength:5,intelligence:5}},
+  {id:"elf",name:"엘프",bonus:{intelligence:10}},
+  {id:"orc",name:"오크",bonus:{hp:10}},
+  {id:"dwarf",name:"드워프",bonus:{strength:10}},
+  {id:"mermaid",name:"인어",bonus:{speed:10}}
+];
+
+window.AITRPG_DATA.jobs = [
+  {id:"swordsman",name:"검사"},
+  {id:"mage",name:"마법사"},
+  {id:"technician",name:"기술자"},
+  {id:"fighter",name:"격투가"},
+  {id:"rogue",name:"도적"}
+];
+
+window.AITRPG_DATA.regions = [
+  {
+    id:"village",
+    name:"바텀웨이마을",
+    type:"safe-area",
+    summary:"인간 제국 남부의 초급 모험가 마을. 상점, 도서관, 성소, 훈련장, 길드가 있다."
+  },
+  {
+    id:"forest",
+    name:"바텀웨이 숲",
+    type:"field",
+    status:"임시 테스트 지역",
+    summary:"마을 바깥에 있는 숲 탐험 구역. 현재는 지역 이동과 마물 관찰을 시험하기 위한 프로토타입 장소다."
+  }
+];
+
+window.AITRPG_DATA.monsters = [
+  {
+    id:"moss-slime",
+    name:"이끼 슬라임",
+    category:"초급 마물 · 테스트 데이터",
+    description:"숲의 축축한 바닥과 나무뿌리 주변에서 발견되는 점액형 마물.",
+    behavior:"느리게 움직이며 주변을 배회한다.",
+    statStatus:"임시 능력치 초안",
+    skills:[],
+    note:"이름과 설명은 탐험 프로토타입용 임시 콘텐츠. 전투 기술과 밸런스는 미확정."
+  },
+  {
+    id:"forest-wolf",
+    name:"숲 늑대",
+    category:"초급 마물 · 테스트 데이터",
+    description:"숲 가장자리에서 무리를 이루는 야생 마물.",
+    behavior:"경계심이 강하고 낯선 존재를 주시한다.",
+    statStatus:"임시 능력치 초안",
+    skills:[],
+    note:"이름과 설명은 탐험 프로토타입용 임시 콘텐츠. 전투 기술과 밸런스는 미확정."
+  },
+  {
+    id:"goblin-scout",
+    name:"고블린 정찰병",
+    category:"초급 마물 · 테스트 데이터",
+    description:"숲속 오솔길 주변을 살피는 작은 마물.",
+    behavior:"주변을 살피며 이동한다.",
+    statStatus:"임시 능력치 초안",
+    skills:[],
+    note:"이름과 설명은 탐험 프로토타입용 임시 콘텐츠. 전투 기술과 밸런스는 미확정."
+  }
+];
+
+window.AITRPG_DATA.npcs = [
+  {id:"denby",name:"덴비 월 호웨이",facility:"상점",role:"상점 주인",temperament:"돈과 용감한 사람을 좋아하며 흥정을 싫어한다.",canBattle:false},
+  {id:"hamel",name:"하멜",facility:"도서관",role:"도서관 관리인",temperament:"평소 온순하지만 책을 무단 반출한 사람에게 적대적이다.",canBattle:true},
+  {id:"billy",name:"빌리",facility:"성소",role:"성소 관계자",temperament:"태양신을 믿으며 폰타와 종교를 모욕하면 전투로 대응한다.",canBattle:true},
+  {id:"fonta",name:"폰타",facility:"성소",role:"성소 관계자",temperament:"빌리나 종교를 모욕하면 상대를 내쫓는다.",canBattle:false},
+  {id:"gale",name:"게일",facility:"훈련장",role:"훈련장 안내자",temperament:"평소 안내만 하지만 모욕을 당하면 전투를 건다.",canBattle:true},
+  {id:"bell",name:"벨",facility:"길드",role:"길드 가입 및 로비 안내",temperament:"친절하고 정확하게 설명한다.",canBattle:false},
+  {id:"yon",name:"욘",facility:"길드",role:"직업 선택 담당",temperament:"차갑고 고집스럽지만 필요한 정보는 알려준다.",canBattle:false},
+  {id:"cheorkol",name:"처콜",facility:"길드",role:"길드 상점 담당",temperament:"돈과 사교를 좋아하며 흥정은 거절한다.",canBattle:false}
+];
+
+window.AITRPG_DATA.statPrototypeNote = "NPC와 마물 능력치는 캐릭터 생성용 주사위 범위를 임시 재사용한 테스트 값이다. NPC·마물 전용 생성 규칙이나 전투 밸런스로 확정된 것이 아니다.";
