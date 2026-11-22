@@ -1,4 +1,13 @@
 const MODEL = "openai/gpt-5.6-luna";
+const rateBuckets=new Map();
+function isRateLimited(req){
+  const ip=String(req.headers&&req.headers["x-forwarded-for"]||"unknown").split(",")[0].trim();
+  const now=Date.now(),entry=rateBuckets.get(ip)||{start:now,count:0};
+  if(now-entry.start>60000){entry.start=now;entry.count=0;}
+  entry.count++;rateBuckets.set(ip,entry);
+  if(rateBuckets.size>500){for(const [key,value] of rateBuckets)if(now-value.start>120000)rateBuckets.delete(key);}
+  return entry.count>12;
+}
 const WORLD_RULES = [
   "게임 세계의 현재 연도는 1876년이며 시작 마을은 인간 제국 남부 바텀웨이마을이다.",
   "타르아니움 자원 전쟁은 1116년 전 시작되었고 인간-엘프 마법 전쟁은 500년 전, 수인 전쟁은 310년 전 벰벨트론이 시작했다.",
@@ -25,6 +34,8 @@ async function ask(messages,maxTokens=700){
 }
 module.exports=async function handler(req,res){
   if(req.method!=="POST")return send(res,405,{error:"METHOD_NOT_ALLOWED"});
+  if(Number(req.headers&&req.headers["content-length"]||0)>12000)return send(res,413,{error:"REQUEST_TOO_LARGE"});
+  if(isRateLimited(req))return send(res,429,{error:"RATE_LIMITED",message:"잠시 기다린 뒤 다시 요청하세요."});
   let body=req.body;
   if(typeof body==="string"){try{body=JSON.parse(body);}catch{return send(res,400,{error:"INVALID_JSON"});}}
   if(!body||typeof body!=="object")return send(res,400,{error:"INVALID_BODY"});
