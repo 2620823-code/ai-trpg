@@ -99,42 +99,13 @@ window.AITRPG_DATA.regions = [
     name:"바텀웨이 숲",
     type:"field",
     status:"임시 테스트 지역",
-    summary:"마을 바깥에 있는 숲 탐험 구역. 현재는 지역 이동과 마물 관찰을 시험하기 위한 프로토타입 장소다."
+    summary:"마을 바깥의 숲 탐험 구역. 지역 이동과 탐험 기능만 준비되어 있으며 마물 데이터는 사용자가 직접 작성할 예정이다."
   }
 ];
 
-window.AITRPG_DATA.monsters = [
-  {
-    id:"moss-slime",
-    name:"이끼 슬라임",
-    category:"초급 마물 · 테스트 데이터",
-    description:"숲의 축축한 바닥과 나무뿌리 주변에서 발견되는 점액형 마물.",
-    behavior:"느리게 움직이며 주변을 배회한다.",
-    statStatus:"임시 능력치 초안",
-    skills:[],
-    note:"이름과 설명은 탐험 프로토타입용 임시 콘텐츠. 전투 기술과 밸런스는 미확정."
-  },
-  {
-    id:"forest-wolf",
-    name:"숲 늑대",
-    category:"초급 마물 · 테스트 데이터",
-    description:"숲 가장자리에서 무리를 이루는 야생 마물.",
-    behavior:"경계심이 강하고 낯선 존재를 주시한다.",
-    statStatus:"임시 능력치 초안",
-    skills:[],
-    note:"이름과 설명은 탐험 프로토타입용 임시 콘텐츠. 전투 기술과 밸런스는 미확정."
-  },
-  {
-    id:"goblin-scout",
-    name:"고블린 정찰병",
-    category:"초급 마물 · 테스트 데이터",
-    description:"숲속 오솔길 주변을 살피는 작은 마물.",
-    behavior:"주변을 살피며 이동한다.",
-    statStatus:"임시 능력치 초안",
-    skills:[],
-    note:"이름과 설명은 탐험 프로토타입용 임시 콘텐츠. 전투 기술과 밸런스는 미확정."
-  }
-];
+window.AITRPG_DATA.monsters = [];
+window.AITRPG_DATA.monsterStatus = "마물 데이터는 사용자가 직접 작성할 예정이며 현재 등록된 마물이 없습니다.";
+
 
 window.AITRPG_DATA.npcs = [
   {id:"denby",name:"덴비 월 호웨이",facility:"상점",role:"상점 주인",temperament:"돈과 용감한 사람을 좋아하며 흥정을 싫어한다.",canBattle:false},
