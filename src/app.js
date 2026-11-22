@@ -334,16 +334,37 @@
     if(d<=40){const monster=chooseMonster();if(monster){state.activeEncounter={monsterId:monster.id,location:"forest",hp:monster.stats.hp,maxHp:monster.stats.hp,turn:0};save();if(monster.stats.speed>(state.character.speed||0))monsterAttack(monster);else showEncounter(monster);}}
     else {message("이번에는 마물이 나타나지 않았습니다.","조우 주사위 1d100 = "+d+" · 40 이하 출현");notify("마물이 나타나지 않았다");}
   }
+
+  const SKILL_BOOK = {
+    "스윙":{job:"swordsman",sp:3,kind:"attack",tier:"normal",formula:c=>c.strength+c.intelligence+5+weaponBonus()},
+    "검기":{job:"swordsman",sp:4,kind:"attack",tier:"powerful",formula:c=>c.strength+c.intelligence+20+weaponBonus()},
+    "분노의 검":{job:"swordsman",sp:4.5,kind:"attack",tier:"ultimate",formula:c=>(c.maxHp-c.hp)*1.2+c.strength*2+weaponBonus()},
+    "패링":{job:"swordsman",sp:2,kind:"parry"},
+    "파이어볼":{job:"mage",sp:3,kind:"attack",tier:"normal",formula:c=>c.intelligence*1.7+10+weaponBonus()},
+    "우뢰":{job:"mage",sp:4,kind:"attack",tier:"powerful",formula:c=>c.strength+c.intelligence+25+weaponBonus()},
+    "아이스 에이지":{job:"mage",sp:4.5,kind:"attack",tier:"ultimate",formula:c=>c.intelligence*1.9+30+weaponBonus()},
+    "스피릿":{job:"mage",sp:2,kind:"attack",tier:"normal",formula:c=>c.intelligence*1.3+weaponBonus()},
+    "터렛":{job:"technician",sp:2.5,kind:"turret"},
+    "폭발 지뢰":{job:"technician",sp:3,kind:"attack",tier:"powerful",formula:c=>c.intelligence*1.3+weaponBonus()},
+    "강화 장갑":{job:"technician",sp:4,kind:"attack",tier:"powerful",formula:c=>Math.max(c.intelligence,c.strength)*1.7+weaponBonus()},
+    "테이저":{job:"technician",sp:3.5,kind:"attack",tier:"normal",formula:c=>c.intelligence*1.5+weaponBonus()},
+    "연속타":{job:"fighter",sp:2,kind:"chain",tier:"normal",formula:c=>c.strength*1.5},
+    "기합타격":{job:"fighter",sp:5,kind:"attack",tier:"powerful",formula:c=>c.strength+c.defense},
+    "카운터":{job:"fighter",sp:3,kind:"counter"},
+    "셰도크로":{job:"rogue",sp:3.5,kind:"attack",tier:"ultimate",formula:c=>c.strength*1.4+weaponBonus()},
+    "포이즌 테러":{job:"rogue",sp:3,kind:"poison"},
+    "갈취":{job:"rogue",sp:2,kind:"leech"},
+    "회복":{job:"shared",sp:4,kind:"heal"},
+    "브레이브 대쉬":{job:"shared",sp:3,kind:"attack",tier:"normal",formula:c=>c.strength+c.intelligence*1.7+weaponBonus()}
+  };
   function showEncounter(monster) {
-    const s=monster.stats||{},e=state.activeEncounter;
-    if(!e)return;
-    if(!Number.isFinite(e.hp))e.hp=s.hp;
-    if(!e.maxHp)e.maxHp=s.hp;
+    const s=monster.stats||{},e=state.activeEncounter;if(!e)return;
+    if(!Number.isFinite(e.hp))e.hp=s.hp;if(!e.maxHp)e.maxHp=s.hp;
     const c=state.character;
-    openModal("전투 · "+escape(monster.name),"<div class='encounter-scene'><b>"+escape(monster.name)+"이(가) 나타났다!</b><p>마물의 남은 HP "+e.hp+" / "+e.maxHp+"</p></div>"+
+    openModal("전투 · "+escape(monster.name),"<div class='encounter-scene'><b>"+escape(monster.name)+"이(가) 나타났다!</b><p>마물 HP "+e.hp+" / "+e.maxHp+"</p></div>"+
       "<div class='monster-stats'><span>근력 "+s.strength+"</span><span>지능 "+s.intelligence+"</span><span>방어력 "+s.defense+"</span><span>속도 "+s.speed+"</span></div>"+
       "<p>플레이어 HP "+c.hp+"/"+c.maxHp+" · SP "+c.sp+"/"+c.maxSp+"</p>"+
-      "<button class='primary-modal' id='battleAttack'>기본 공격</button><button class='primary-modal' id='battleSkill'>스킬</button><button class='primary-modal' id='battleEscape'>도주</button>");
+      "<button class='primary-modal' id='battleAttack'>기본 공격</button><button class='primary-modal' id='battleSkill'>스킬 목록</button><button class='primary-modal' id='battleEscape'>도주</button>");
   }
   function currentMonster(){
     const e=state.activeEncounter;if(!e)return null;
@@ -351,70 +372,86 @@
     if(x.variantOf){const base=DATA.monsters.find(m=>m.id===x.variantOf);return base?{...base,...x,stats:{...base.stats}}:x;}return x;
   }
   function weaponBonus(){const w=state.character?.equipment?.weapon;return w?Number(w.bonus||0):0;}
+  function skillCost(name,c){const d=SKILL_BOOK[name];if(!d)return Infinity;const a=c.skillAwakenings&&c.skillAwakenings[name];return Math.max(1,d.sp-((a&&a.spReduction)||0));}
+  function playerHitThreshold(tier){return tier==="ultimate"?44:tier==="powerful"?49:55;}
+  function showSkillList(){
+    const c=state.character;
+    const rows=(c.skills||[]).map(name=>{
+      const d=SKILL_BOOK[name];if(!d)return "<div class='inventory-item'><b>"+escape(name)+"</b><small>효과 규칙 복원 필요</small></div>";
+      const cost=skillCost(name,c),allowed=d.job==="shared"||d.job===c.jobId;
+      return "<div class='inventory-item'><b>"+escape(name)+"</b><small>SP "+cost+(allowed?"":" · 현재 직업 사용 불가")+"</small><button class='primary-modal' data-use-skill='"+escape(name)+"' "+(!allowed||c.sp+1<cost?"disabled":"")+">사용</button></div>";
+    }).join("");
+    openModal("전투 스킬",rows+"<button class='primary-modal' id='battleBack'>전투로 돌아가기</button>");
+  }
   function monsterAttack(monster){
     const c=state.character,e=state.activeEncounter;if(!c||!e)return;
-    const skills={
-      "weak-goblin":{name:"돌진",damage:monster.stats.strength*1.2},
-      "weak-spider":{name:"물기",damage:monster.stats.strength*1.5},
-      "goblin":{name:"펀치",damage:monster.stats.strength*1.6},
-      "treasure-mimic":{name:"염력",damage:(monster.stats.strength+monster.stats.intelligence)*1.9},
-      "book-mimic":{name:"염력",damage:(monster.stats.strength+monster.stats.intelligence)*1.9}
-    };
-    const skill=skills[monster.id]||{name:"공격",damage:monster.stats.strength};
-    const hit=roll(100),def=roll(100),hitOK=hit<=55,defLimit=50+(c.defense||0)/4,defOK=def<=defLimit;
+    const skills={"weak-goblin":{name:"돌진",damage:monster.stats.strength*1.2,physical:true},"weak-spider":{name:"물기",damage:monster.stats.strength*1.5,physical:true},"goblin":{name:"펀치",damage:monster.stats.strength*1.6,physical:true},"treasure-mimic":{name:"염력",damage:(monster.stats.strength+monster.stats.intelligence)*1.9,physical:false},"book-mimic":{name:"염력",damage:(monster.stats.strength+monster.stats.intelligence)*1.9,physical:false}};
+    const skill=skills[monster.id]||{name:"공격",damage:monster.stats.strength,physical:true};
+    const hit=roll(100),def=roll(100),hitOK=hit<=55,defLimit=50+(c.defense||0)/4,parry=!!e.parryReady,defOK=parry||def<=defLimit;
     const damage=hitOK?Math.floor(skill.damage*(defOK?0.25:1)):0;
-    c.hp=Math.max(0,c.hp-damage);e.turn=(e.turn||0)+1;
-    record("마물 공격",skill.name+" · 명중 1d100="+hit+" (55 이하) · 방어 1d100="+def+" (기준 "+defLimit+") · 피해 "+damage);
+    if(skill.physical&&e.counterReady){const reflected=damage*2;e.hp=Math.max(0,e.hp-reflected);record("카운터 반격","받은 물리 피해 "+damage+" · 반격 피해 "+reflected);e.counterReady=false;}
+    if(e.turretTurns>0){e.hp=Math.max(0,e.hp-10);e.turretTurns--;record("터렛 공격","자동 피해 10 · 남은 지속 "+e.turretTurns+"턴");}
+    if(e.poisonTurns>0){const poison=Math.ceil(monster.stats.hp/8);e.hp=Math.max(0,e.hp-poison);e.poisonTurns--;record("포이즌 테러","최대 HP의 1/8 · 피해 "+poison+" · 남은 지속 "+e.poisonTurns+"턴");}
+    c.hp=Math.max(0,c.hp-damage);e.turn=(e.turn||0)+1;e.parryReady=false;
+    record("마물 공격",skill.name+" · 명중 1d100="+hit+" (55 이하) · 방어 1d100="+def+" (기준 "+(parry?"자동 성공":defLimit)+") · 피해 "+damage);
+    if(e.hp<=0){finishMonster(monster);return;}
     if(c.hp<=0){c.dead=true;c.hp=0;state.activeEncounter=null;save();renderCharacter();openModal("사망","<p>보유 아이템은 유지됩니다. 성소에서 200G를 지불해야 부활할 수 있습니다.</p>");message("캐릭터 사망","아이템과 레벨은 유지됩니다. 부활 비용은 200G입니다.");return;}
     save();renderCharacter();showEncounter(monster);
   }
   function finishMonster(monster){
     const c=state.character,e=state.activeEncounter;if(!e)return;
-    const tables={
-      "weak-goblin":["약골 고블린의 손톱","약골 고블린의 이빨","약골 고블린의 고기"],
-      "weak-spider":["약골 거미의 다리","약골 거미의 눈","약골 거미의 심장"],
-      "goblin":["고블린의 발톱","고블린의 낡은 옷","고블린의 고기"],
-      "treasure-mimic":["미믹의 혀","미믹의 핵","미믹의 금화"],
-      "book-mimic":["미믹의 혀","미믹의 핵","미믹의 금화"]
-    };
-    const luck=Math.floor((c.luck||0)/5),d=roll(100),hi=1+luck,mid=40+luck,low=90+luck;
-    const tier=d<=hi?2:d<=mid?1:d<=low?0:-1,loot=tables[monster.id];
-    let found="전리품 없음";
-    if(tier>=0&&loot){found=loot[tier];addItem({id:"loot-"+monster.id+"-"+tier,name:found,type:"마물 유해",quality:["저급","중급","고급"][tier]});}
-    if(monster.id==="book-mimic"){
-      const q=state.quests["book-mimic-hunt"];q.defeated=(q.defeated||0)+1;
-      if(q.defeated>=3&&!q.rewarded){q.rewarded=true;state.gold+=20;addItem({id:"skill-book",name:"스킬북",type:"서적"});grantLp(10,"도서관 의뢰 성공");record("의뢰 완료","책의 미믹 3마리 처치 · 20G, 스킬북, 10 LP 획득");}
+    const tables={"weak-goblin":["약골 고블린의 손톱","약골 고블린의 이빨","약골 고블린의 고기"],"weak-spider":["약골 거미의 다리","약골 거미의 눈","약골 거미의 심장"],"goblin":["고블린의 발톱","고블린의 낡은 옷","고블린의 고기"],"treasure-mimic":["미믹의 혀","미믹의 핵","미믹의 금화"],"book-mimic":["미믹의 혀","미믹의 핵","미믹의 금화"]};
+    const luck=Math.floor((c.luck||0)/5),d=roll(100),hi=1+luck,mid=40+luck,low=90+luck,tier=d<=hi?2:d<=mid?1:d<=low?0:-1,loot=tables[monster.id];
+    let found="전리품 없음";if(tier>=0&&loot){found=loot[tier];addItem({id:"loot-"+monster.id+"-"+tier,name:found,type:"마물 유해",quality:["저급","중급","고급"][tier]});}
+    if(monster.id==="book-mimic"){const q=state.quests["book-mimic-hunt"];q.defeated=(q.defeated||0)+1;if(q.defeated>=3&&!q.rewarded){q.rewarded=true;state.gold+=20;addItem({id:"skill-book",name:"스킬북",type:"서적"});grantLp(10,"도서관 의뢰 성공");record("의뢰 완료","책의 미믹 3마리 처치 · 20G, 스킬북, 10 LP 획득");}}
+    const active=state.activeGeneralQuest;if(active&&active.status==="accepted"&&active.targetMonsterId===monster.id){active.defeated=(active.defeated||0)+1;if(active.defeated>=active.targetCount){active.status="completed";state.activeGeneralQuest=null;grantLp(10,"일반 의뢰 성공");record("일반 의뢰 완료",active.title+" · 10 LP 획득");}}
+    state.activeEncounter=null;grantLp(5,"마물 "+monster.name+" 처치");record("전리품 판정","1d100="+d+" · "+found);save();closeModal();renderCharacter();message(monster.name+" 처치","5 LP 획득 · 전리품: "+found);
+  }
+  function useBattleSkill(name){
+    const c=state.character,e=state.activeEncounter,monster=currentMonster(),d=SKILL_BOOK[name];if(!c||!e||!monster||!d)return;
+    if(d.job!=="shared"&&d.job!==c.jobId){notify("현재 직업은 이 스킬을 사용할 수 없습니다.");return;}
+    const before=c.sp;c.sp=Math.min(c.maxSp||25,(c.sp||0)+1);const cost=skillCost(name,c);
+    if(c.sp<cost){c.sp=before;notify("SP가 부족합니다.");return;}c.sp-=cost;
+    if(d.kind==="parry"){e.parryReady=true;record("스킬 사용","패링 · SP "+cost+" · 다음 공격 방어 자동 성공 · 피해 ×0.25");monsterAttack(monster);return;}
+    if(d.kind==="counter"){e.counterReady=true;record("스킬 사용","카운터 · SP "+cost+" · 다음 물리 공격 피해의 2배 반격");monsterAttack(monster);return;}
+    if(d.kind==="turret"){e.turretTurns=3;record("스킬 사용","터렛 설치 · SP "+cost+" · 3턴간 매턴 10 피해");monsterAttack(monster);return;}
+    if(d.kind==="poison"){e.poisonTurns=3;record("스킬 사용","포이즌 테러 · SP "+cost+" · 3턴간 마물 최대 HP의 1/8 피해");monsterAttack(monster);return;}
+    if(d.kind==="leech"){const stolen=Math.floor((monster.currentSp||0)/2);monster.currentSp=Math.max(0,(monster.currentSp||0)-stolen);c.sp=Math.min(c.maxSp||25,c.sp+stolen);record("스킬 사용","갈취 · SP "+cost+" · 마물 현재 SP 절반 탈취 "+stolen);monsterAttack(monster);return;}
+    if(d.kind==="heal"){
+      if(e.recoveryUsed){c.sp+=cost;notify("회복은 전투당 1회만 사용할 수 있습니다.");return;}
+      const amount=Math.floor(c.maxHp/4);c.hp=Math.min(c.maxHp,c.hp+amount);e.recoveryUsed=true;record("스킬 사용","회복 · SP "+cost+" · HP "+amount+" 회복");monsterAttack(monster);return;
     }
-    const active=state.activeGeneralQuest;
-    if(active&&active.status==="accepted"&&active.targetMonsterId===monster.id){active.defeated=(active.defeated||0)+1;if(active.defeated>=active.targetCount){active.status="completed";state.activeGeneralQuest=null;grantLp(10,"일반 의뢰 성공");record("일반 의뢰 완료",active.title+" · 10 LP 획득");}}
-    state.activeEncounter=null;grantLp(5,"마물 "+monster.name+" 처치");
-    record("전리품 판정","1d100="+d+" · "+found);save();closeModal();renderCharacter();
-    message(monster.name+" 처치","5 LP 획득 · 전리품: "+found);
+    if(d.kind==="attack"||d.kind==="chain"){
+      let damage=d.formula(c);if(d.kind==="chain"){e.chainCount=Math.min(3,e.lastSkill==="연속타"?(e.chainCount||1)+1:1);damage*=Math.pow(1.1,e.chainCount-1);}else e.chainCount=0;e.lastSkill=name;
+      const hit=roll(100),threshold=playerHitThreshold(d.tier),hitOK=hit<=threshold;
+      if(!hitOK)record("스킬 사용",name+" · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 빗나감");
+      else{
+        const def=roll(100),limit=50+(monster.stats.defense||0)/4,defOK=def<=limit,awaken=c.skillAwakenings&&c.skillAwakenings[name];
+        if(awaken&&awaken.multiplierBonus)damage*=1+awaken.multiplierBonus;
+        const finalDamage=Math.floor(damage*(defOK?0.25:1));e.hp=Math.max(0,e.hp-finalDamage);
+        const w=c.equipment&&c.equipment.weapon;if(w){w.pp=Math.max(0,(w.pp||0)-1);if(w.pp===0){c.equipment.weapon=null;record("무기 파괴",w.name+" PP가 0이 되어 파괴되었습니다.");}}
+        record("스킬 사용",name+" · SP "+cost+" · 명중 1d100="+hit+" (기준 "+threshold+") · 마물 방어 1d100="+def+" (기준 "+limit+") · 피해 "+finalDamage);
+      }
+      if(e.hp<=0){finishMonster(monster);return;}monsterAttack(monster);return;
+    }
   }
   function battleAction(action){
     const monster=currentMonster(),c=state.character,e=state.activeEncounter;if(!monster||!c)return;
-    if(action!=="skill"){const before=c.sp;c.sp=Math.min(c.maxSp||25,(c.sp||0)+1);if(c.sp!==before)record("SP 회복","턴 회복 +1 SP · "+before+" → "+c.sp);}
+    if(action==="skill"){showSkillList();return;}
+    const before=c.sp;c.sp=Math.min(c.maxSp||25,(c.sp||0)+1);if(c.sp!==before)record("SP 회복","턴 회복 +1 SP · "+before+" → "+c.sp);
     if(action==="escape"){
       const ok=c.speed>monster.stats.speed?true:c.speed<monster.stats.speed?false:roll(100)<=50;
       record("도주 판정","플레이어 속도 "+c.speed+" · 마물 속도 "+monster.stats.speed+" · "+(ok?"성공":"실패"));
-      if(ok){state.activeEncounter=null;save();closeModal();message("도주 성공","마물에게서 벗어났습니다.");return;}
-      monsterAttack(monster);return;
-    }
-    if(action==="skill"){
-      openModal("스킬 선택","<p>현재 보유 스킬: "+(c.skills||[]).join(" · ")+"</p><p>스킬별 피해 공식과 SP 비용은 확인된 기술 데이터에 연결할 예정입니다. 현재 기본 공격을 사용할 수 있습니다.</p><button class='primary-modal' id='battleBack'>전투로 돌아가기</button>");return;
+      if(ok){state.activeEncounter=null;save();closeModal();message("도주 성공","마물에게서 벗어났습니다.");return;}monsterAttack(monster);return;
     }
     const hit=roll(100),hitOK=hit<=55;
     if(hitOK){
       const def=roll(100),limit=50+(monster.stats.defense||0)/4,defOK=def<=limit;
-      let damage=Math.floor(((c.strength||0)+weaponBonus())*(defOK?0.25:1));
-      const crit=roll(100),critical=crit<=20;if(critical)damage=Math.floor(damage*1.25);
-      e.hp=Math.max(0,e.hp-damage);
-      const w=c.equipment&&c.equipment.weapon;
-      if(w){w.pp=Math.max(0,(w.pp||0)-1);if(w.pp===0){c.equipment.weapon=null;record("무기 파괴",w.name+" PP가 0이 되어 파괴되었습니다.");}}
-      record("플레이어 공격","명중 1d100="+hit+" (55 이하) · 마물 방어 1d100="+def+" (기준 "+limit+") · 크리티컬 1d100="+crit+" (20 이하) · "+(critical?"치명타 · ":"")+"피해 "+damage);
+      const damage=Math.floor((c.strength+weaponBonus())*(defOK?0.25:1));e.hp=Math.max(0,e.hp-damage);
+      const w=c.equipment&&c.equipment.weapon;if(w){w.pp=Math.max(0,(w.pp||0)-1);if(w.pp===0){c.equipment.weapon=null;record("무기 파괴",w.name+" PP가 0이 되어 파괴되었습니다.");}}
+      record("플레이어 공격","명중 1d100="+hit+" (55 이하) · 마물 방어 1d100="+def+" (기준 "+limit+") · 피해 "+damage);
     }else record("플레이어 공격","명중 1d100="+hit+" (55 이하) · 빗나감 · 무기 PP 감소 없음");
-    if(e.hp<=0){finishMonster(monster);return;}
-    monsterAttack(monster);
+    if(e.hp<=0){finishMonster(monster);return;}monsterAttack(monster);
   }
   function leaveEncounter(){battleAction("escape");}
 
