@@ -669,7 +669,7 @@
     if(t.id==="leaveEncounter")leaveEncounter();
     if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
     if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
-    if(t.dataset.awakenSkill){openModal("스킬 각성 방식","<p>"+escape(t.dataset.awakenSkill)+"의 각성 효과를 선택하세요.</p><button class='primary-modal' data-awaken-mode='sp' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>SP 소모량 -0.5</button><button class='primary-modal' data-awaken-mode='power' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>위력 배율 +0.1</button>;}
+    if(t.dataset.awakenSkill){openModal("스킬 각성 방식","<p>"+escape(t.dataset.awakenSkill)+"의 각성 효과를 선택하세요.</p><button class='primary-modal' data-awaken-mode='sp' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>SP 소모량 -0.5</button><button class='primary-modal' data-awaken-mode='power' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>위력 배율 +0.1</button>");}
     if(t.dataset.awakenMode)awakenSkill(t.dataset.awakenTarget,t.dataset.awakenMode);
     if(t.dataset.statPoint)spendStatPoint(t.dataset.statPoint);
     if(t.id==="sellApples")sellApples();
