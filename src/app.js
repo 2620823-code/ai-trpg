@@ -571,7 +571,8 @@
     try{
       const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         mode:"chat",message:clean,npc:npc.name,npcProfile:{role:npc.role,facility:npc.facility,temperament:npc.temperament},
-        character:state.character?{name:state.character.name,race:state.character.raceName,job:state.character.jobName,level:state.character.level}:null,
+        character:state.character?{name:state.character.name,race:state.character.raceName,job:state.character.jobName,level:state.character.level,hp:state.character.hp,maxHp:state.character.maxHp,sp:state.character.sp,maxSp:state.character.maxSp,skills:state.character.skills,equippedSkills:state.character.equippedSkills}:null,
+        gameState:{day:state.day,gold:state.gold,region:state.region,quests:state.quests,activeGeneralQuest:state.activeGeneralQuest,inventory:(state.inventory||[]).map(x=>({name:x.name,type:x.type})),recentActions:(state.actions||[]).slice(-20)},
         location:state.position,history:dialogueHistory.slice(-8)
       })});
       const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"AI GM 요청 실패");
@@ -838,6 +839,19 @@
   });
   $("closeModal").addEventListener("click",closeModal);modal.addEventListener("click",(e)=>{if(e.target===modal)closeModal();});
   modalContent.addEventListener("input",(e)=>{if(["charRace","charJob","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
+  function exportSaveFile(){
+    const raw=localStorage.getItem(KEY);if(!raw){notify("내보낼 저장 데이터가 없습니다.");return;}
+    const blob=new Blob([raw],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="ai-trpg-save-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);record("저장 백업","게임 저장 파일을 내보냈다.");
+  }
+  async function importSaveFile(file){
+    if(!file)return;
+    try{
+      const parsed=JSON.parse(await file.text());
+      if(!parsed||typeof parsed!=="object"||!parsed.character||!Array.isArray(parsed.actions)||!Array.isArray(parsed.inventory))throw new Error("저장 파일 형식이 올바르지 않습니다.");
+      localStorage.setItem(KEY,JSON.stringify(parsed));localStorage.setItem(KEY+"-backup",JSON.stringify(parsed));window.location.reload();
+    }catch(error){notify("저장 파일을 불러오지 못했습니다: "+error.message);}
+  }
   modalContent.addEventListener("click",(e)=>{
     const t=e.target;
     if(t.id==="reviewCharacter")reviewCharacter();
@@ -884,13 +898,14 @@
     if(t.dataset.guildBuy!==undefined){const shop=facilities.find(x=>x.id==="shop"),item=shop&&shop.items[Number(t.dataset.guildBuy)];if(item){if(!canBuyItem(item)){notify("현재 직업은 구매할 수 없습니다.");return;}if(state.gold<item.price)notify("골드가 부족합니다.");else if(state.inventory.length>=30)notify("인벤토리가 가득 찼습니다.");else{const bonusMatch=item.effect.match(/(?:보정치|보정)\s*\+\s*(\d+)/),ppMatch=item.effect.match(/PP\s*(\d+)/),weapon=item.type==="무기";const obj={id:"shop-"+Number(t.dataset.guildBuy),name:item.name,type:weapon?"무기":item.type==="회복"?"소모품":item.type,effect:item.effect,bonus:bonusMatch?Number(bonusMatch[1]):0,pp:ppMatch?Number(ppMatch[1]):weapon?10:0,maxPp:ppMatch?Number(ppMatch[1]):weapon?10:0,restriction:item.restriction};obj.instanceId=Date.now()+"-"+Math.random().toString(36).slice(2);state.gold-=item.price;state.inventory.push(obj);save();renderCharacter();record("길드 상점 구매",item.name+" · "+item.price+"G");facilityContent("guild");}}}
     if(t.dataset.useItem)useInventoryItem(t.dataset.useItem);
   });
+  modalContent.addEventListener("change",(e)=>{if(e.target.id==="importSaveFile")importSaveFile(e.target.files&&e.target.files[0]);});
   document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
     const v=b.dataset.view;
     if(v==="character"){if(state.character)openCharacterPanel();else characterForm();}
     if(v==="inventory")showInventory();if(v==="map")showMap();if(v==="npcs")showNpcs();
     if(v==="story")openModal("스토리 기록","<p>1876년, 인간 제국 남부의 바텀웨이마을에서 모험을 시작합니다.</p><p>기록된 행동: "+state.actions.length+"건</p>");
   }));
-  $("menuBtn").addEventListener("click",()=>openModal("게임 메뉴","<button class='primary-modal' id='menuChar'>캐릭터 생성</button><button class='primary-modal' id='menuMap'>지도</button><button class='primary-modal' id='menuNpcs'>NPC 목록</button>"));
+  $("menuBtn").addEventListener("click",()=>openModal("게임 메뉴","<button class='primary-modal' id='menuChar'>캐릭터 생성</button><button class='primary-modal' id='menuMap'>지도</button><button class='primary-modal' id='menuNpcs'>NPC 목록</button><h3>저장 데이터</h3><button class='primary-modal' id='exportSave'>저장 파일 내보내기</button><label>저장 파일 불러오기</label><input type='file' id='importSaveFile' accept='application/json,.json'>"));
   modalContent.addEventListener("click",(e)=>{if(e.target.id==="menuChar")characterForm();if(e.target.id==="menuMap")showMap();if(e.target.id==="menuNpcs")showNpcs();});
   window.addEventListener("resize",renderMapCamera);window.addEventListener("beforeunload",save);
   npcWanderTimer = window.setInterval(wanderNpcs, 2300);
