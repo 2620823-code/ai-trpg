@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+<defs>
+ <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#83b8dc"/><stop offset=".62" stop-color="#d4e5d5"/><stop offset="1" stop-color="#f0d7a8"/></linearGradient>
+ <linearGradient id="mount" x2="0" y2="1"><stop stop-color="#547d79"/><stop offset="1" stop-color="#294e47"/></linearGradient>
+ <linearGradient id="stone" x2="0" y2="1"><stop stop-color="#e8d7b6"/><stop offset="1" stop-color="#8c755d"/></linearGradient>
+ <linearGradient id="roof" x2="0" y2="1"><stop stop-color="#6686a5"/><stop offset="1" stop-color="#263f5c"/></linearGradient>
+ <linearGradient id="terracotta" x2="0" y2="1"><stop stop-color="#d58d65"/><stop offset="1" stop-color="#793f36"/></linearGradient>
+ <linearGradient id="road" x2="0" y2="1"><stop stop-color="#c7b38e"/><stop offset="1" stop-color="#8f806b"/></linearGradient>
+ <radialGradient id="leaf"><stop stop-color="#a6c979"/><stop offset=".7" stop-color="#4c8250"/><stop offset="1" stop-color="#28523e"/></radialGradient>
+ <pattern id="cobble" width="88" height="52" patternUnits="userSpaceOnUse"><path d="M4 5h34l7 8-4 14H7L1 19Zm46 0h32l5 8-4 14H51l-5-11Zm-29 29h34l4 12H18Zm42 0h31l-2 12H59Z" fill="#d6c6a8" stroke="#8e806d" stroke-width="2" opacity=".8"/></pattern>
+ <filter id="shade"><feGaussianBlur stdDeviation="10"/></filter>
+ <g id="tree"><path d="M-10 30 0-30 11 30Z" fill="#76543c"/><circle cy="-38" r="38" fill="url(#leaf)"/><circle cx="-25" cy="-43" r="23" fill="#6b9b5b"/><circle cx="22" cy="-56" r="26" fill="#477b4a"/><circle cx="4" cy="-67" r="18" fill="#9abe70"/></g>
+ <g id="house"><path d="M-95 0 0-88 95 0v102h-190Z" fill="#d9c5a2" stroke="#594c40" stroke-width="7"/><path d="M-108 2 0-112 108 2Z" fill="url(#roof)" stroke="#344454" stroke-width="8"/><path d="M-82 7h164" stroke="#735b48" stroke-width="6"/><rect x="-25" y="28" width="50" height="74" rx="4" fill="#604a38"/><rect x="-75" y="23" width="38" height="38" fill="#9ec6c9" stroke="#654e3a" stroke-width="6"/><rect x="38" y="23" width="38" height="38" fill="#9ec6c9" stroke="#654e3a" stroke-width="6"/><path d="M-95 0h190" stroke="#f1dfbf" stroke-width="9"/></g>
+</defs>
+<rect width="1600" height="900" fill="url(#sky)"/>
+<circle cx="1320" cy="125" r="62" fill="#fff0c9" opacity=".72"/>
+<path d="M0 340 160 178 265 278 435 118 575 292 735 145 905 308 1090 132 1248 296 1400 172 1600 328V520H0Z" fill="#6e9589"/>
+<path d="m0 385 190-130 160 110 190-180 160 170 180-115 180 135 170-170 190 175 180-115v280H0Z" fill="url(#mount)"/>
+<path d="M0 450Q240 380 430 450T850 438t400 10 350-20V650H0Z" fill="#67905e"/>
+<path d="M0 510Q210 430 410 505T800 495t410 10 390-10V900H0Z" fill="#527d4c"/>
+<!-- distant roofs -->
+<g opacity=".9">
+ <use href="#house" transform="translate(210 430) scale(.48)"/><use href="#house" transform="translate(430 395) scale(.42)"/>
+ <use href="#house" transform="translate(1210 410) scale(.5)"/><use href="#house" transform="translate(1430 445) scale(.43)"/>
+ <use href="#house" transform="translate(740 370) scale(.38)"/>
+</g>
+<!-- church -->
+<g transform="translate(820 185)">
+ <path d="M-130 180h260v230h-260Z" fill="#d9d1bd" stroke="#776c5d" stroke-width="8"/>
+ <path d="M-158 190 0 75 158 190Z" fill="#596e83" stroke="#36495b" stroke-width="9"/>
+ <path d="M-60 410V260Q0 180 60 260V410Z" fill="#8eacb0" stroke="#6a655b" stroke-width="8"/>
+ <path d="M-35 410V285Q0 235 35 285V410Z" fill="#304a5c"/>
+ <g fill="#9cc7d0" stroke="#736b5e" stroke-width="6"><path d="M-105 270q30-48 60 0v72h-60Z"/><path d="M45 270q30-48 60 0v72H45Z"/></g>
+ <path d="M-40 82 0-85 40 82Z" fill="#536e88" stroke="#34485d" stroke-width="8"/><path d="M0-120V-72" stroke="#d7bd83" stroke-width="8"/><path d="M-19-104h38" stroke="#d7bd83" stroke-width="7"/>
+ <circle cy="205" r="25" fill="#e8d6a9" stroke="#75634d" stroke-width="7"/><path d="M0 183v44m-22-22h44" stroke="#75634d" stroke-width="5"/>
+</g>
+<!-- town buildings -->
+<g><use href="#house" transform="translate(190 510) scale(1.02)"/><use href="#house" transform="translate(1410 510) scale(1.04)"/>
+<use href="#house" transform="translate(480 475) scale(.7)"/><use href="#house" transform="translate(1115 470) scale(.74)"/></g>
+<!-- market awnings -->
+<g><path d="M80 505h270v36H80Z" fill="#e8dfc9"/><path d="M80 505h45v36H80m90-36h45v36h-45m90-36h45v36h-45" fill="#6c99b3"/>
+<path d="M1260 508h260v36h-260Z" fill="#e8dfc9"/><path d="M1260 508h45v36h-45m90-36h45v36h-45m90-36h45v36h-45" fill="#bb7155"/></g>
+<!-- central plaza -->
+<path d="M-80 900Q190 655 530 640Q800 625 1060 665T1680 900Z" fill="url(#road)"/>
+<path d="M-80 900Q190 655 530 640Q800 625 1060 665T1680 900Z" fill="url(#cobble)" opacity=".65"/>
+<path d="M0 900Q280 730 570 700M1600 900Q1290 710 1010 690" fill="none" stroke="#e7d8b9" stroke-width="16" opacity=".6"/>
+<!-- fountain -->
+<ellipse cx="800" cy="695" rx="170" ry="48" fill="#554b3c" opacity=".35" filter="url(#shade)"/>
+<ellipse cx="800" cy="670" rx="155" ry="45" fill="#b6a083" stroke="#695b49" stroke-width="12"/>
+<ellipse cx="800" cy="662" rx="128" ry="29" fill="#68b6c7" stroke="#e5d5b8" stroke-width="7"/>
+<path d="M740 658h120l-18-42h-84Z" fill="url(#stone)" stroke="#806d56" stroke-width="7"/>
+<path d="M770 616h60l-12-62h-36Z" fill="#d9c9a9" stroke="#806d56" stroke-width="6"/>
+<path d="M800 550Q778 515 800 485Q822 515 800 550" fill="#9de4ec" stroke="#e0f6f4" stroke-width="5"/>
+<path d="M780 560q-40-65-22-95m62 95q40-65 22-95" fill="none" stroke="#b8eff0" stroke-width="7" stroke-linecap="round"/>
+<!-- trees, flower beds and lanterns -->
+<g><use href="#tree" transform="translate(60 655) scale(1.3)"/><use href="#tree" transform="translate(360 610) scale(.9)"/><use href="#tree" transform="translate(1260 615) scale(1.1)"/><use href="#tree" transform="translate(1530 650) scale(1.3)"/>
+<use href="#tree" transform="translate(520 535) scale(.5)"/><use href="#tree" transform="translate(1080 545) scale(.55)"/></g>
+<g fill="#f0c7ad"><circle cx="70" cy="795" r="8"/><circle cx="96" cy="812" r="7"/><circle cx="140" cy="785" r="8"/><circle cx="1480" cy="800" r="8"/><circle cx="1515" cy="822" r="7"/></g>
+<g stroke="#493d32" stroke-width="7"><path d="M310 480v120m-15-110h30l-6 22h-18Z"/><path d="M1290 480v120m-15-110h30l-6 22h-18Z"/></g>
+<g fill="#ffe7a6"><circle cx="310" cy="501" r="9"/><circle cx="1290" cy="501" r="9"/></g>
+<!-- foreground paving depth -->
+<path d="M0 825Q390 760 800 785T1600 825V900H0Z" fill="#756b5c" opacity=".16"/>
+</svg>
