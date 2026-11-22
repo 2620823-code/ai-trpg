@@ -349,7 +349,7 @@
     const details = state.inventory.map((item, i) => {
       let description = "";
       if (item.id === "big-apple") description = "1회용 · 스킬 사용 후 HP가 최대 HP의 절반 이하이면 자동 사용 · 최대 HP의 1/4 회복";
-      else if (item.type === "monster-remains") description = "길드에서 매입할 수 있는 마물 유해 · 매입 가격은 아직 미정";
+      else if (item.type === "monster-remains") description = "길드에서 매입할 수 있는 마물 유해";
       else if (item.type === "skill-book") description = "의뢰 보상 스킬북 · 습득할 스킬은 책의 세부 규칙 확정 후 연결";
       return "<div class=\"inventory-item\"><b>" + (i + 1) + ". " + escapeHtml(item.name) +
         "</b><small>" + escapeHtml(description) + "</small></div>";
@@ -365,7 +365,7 @@
     if (state.nextForestAppleStep == null &&
         !state.groundItems.some((item) => item.id === "big-apple" && item.location === "forest")) {
       const config = DATA.forestItems.bigApple;
-      state.nextForestAppleStep = state.forestSteps + roll(config.spawnStepMax - config.spawnStepMin + 1) + config.spawnStepMin - 1;
+      state.nextForestAppleStep = state.forestSteps + roll(config.config.spawnStepMax - config.spawnStepMin + 1) + config.spawnStepMin - 1;
     }
   }
 
@@ -732,6 +732,10 @@
     const f = DATA.facilities.find((x) => x.id === id);
     if (!f) return;
     const lines = [];
+    const interiorNpc = (DATA.npcs || []).filter((n) => n.facility === f.name);
+    lines.push('<section class="facility-interior facility-' + f.id + '"><div class="interior-art"><span class="interior-lamp">✦</span><div class="interior-npc-mark">' + escapeHtml((f.owner || f.name).slice(0,1)) + '</div><div class="interior-sign">' + escapeHtml(f.name) + '</div></div><div class="interior-copy"><b>' + escapeHtml(f.name) + ' 내부</b><p>' + escapeHtml(f.summary) + '</p></div></section>');
+    if (interiorNpc.length) lines.push("<h3>직원과 대화</h3>" + interiorNpc.map((n) => '<button class="primary-modal npc-talk-button" data-npc-talk="' + escapeHtml(n.id) + '">' + escapeHtml(n.name) + '과(와) 대화</button>').join(" "));
+    if (f.id === "shop") lines.push('<h3>아이템 매입</h3><p>큰사과를 개당 5G에 판매할 수 있습니다.</p><button class="primary-modal" id="sellApplesBtn">큰사과 판매</button>');
     if (f.owner) lines.push("<p><b>담당 NPC:</b> " + escapeHtml(f.owner) + "</p>");
     if (f.entryFee !== undefined) lines.push("<p><b>입장료:</b> " + f.entryFee + "G</p>");
     if (f.items) {
@@ -752,7 +756,7 @@
     if (f.rules) lines.push("<h3>이용 규칙</h3><ul>" + f.rules.map((x) => "<li>" + escapeHtml(x) + "</li>").join("") + "</ul>");
     if (f.board) lines.push("<h3>의뢰 게시판</h3><ul>" + f.board.map((x) => "<li>" + escapeHtml(x) + "</li>").join("") + "</ul>");
     if (f.id === "library") lines.push("<h3>도서관 의뢰</h3>" + showLibraryQuest() +
-      "<h3>서가 탐색</h3><p>누적 탐색 " + state.librarySteps + "발자국 · 50발자국마다 1d100, 20 이하이면 책의 미믹 조우</p>" +
+      "<h3>서가 탐색</h3><p>누적 탐색 " + state.librarySteps + "발자국 · 50발자국마다 1d100, 40 이하이면 책의 미믹 조우</p>" +
       '<button class="primary-modal" id="libraryStepBtn">서가에서 1발자국 이동</button>' +
       "<h3>도서관 바닥의 아이템</h3>" + renderGroundItems("library"));
     if (f.id === "guild") lines.push("<h3>마물 유해 매입</h3>" +
@@ -787,7 +791,7 @@
     } else if (view === "inventory") {
       showInventory();
     } else if (view === "map") {
-      openModal("지역 지도", "<p>현재 위치: " + escapeHtml(state.position) + "</p><p>바텀웨이마을과 바텀웨이 숲은 탐험 테스트용으로 연결했습니다. 대륙 지형과 실제 지도는 기존에 확정한 원본 지도를 기준으로 별도 반영합니다.</p>");
+      openModal("바텀웨이 지역 지도", '<div class="region-map"><div class="map-village"><b>바텀웨이마을</b><small>상점 · 도서관 · 성소 · 훈련장 · 길드</small></div><div class="map-path">╱╲ 숲길 ╱╲</div><div class="map-forest"><b>바텀웨이 숲</b><small>마물 출현 지역</small></div></div><p>현재 위치: ' + escapeHtml(state.position) + '</p><p class="muted">현재 지도는 바텀웨이마을과 인접 숲의 플레이용 지역도이며, 대륙 원본 지도와는 별도로 표시됩니다.</p>');
     } else if (view === "npcs") {
       showNpcList();
     }
@@ -884,12 +888,43 @@
   ));
 
   $("closeModal").addEventListener("click", closeModal);
+
+  function npcDialogue(id) {
+    const npc = DATA.npcs.find((item) => item.id === id);
+    if (!npc) return;
+    const lines = {
+      denby: "어서 오게. 필요한 물건이 있으면 살펴보게나. 큰사과는 개당 5G에 사주지.",
+      hamel: "도서관에서는 책을 조심히 다뤄 주게. 서가에 이상한 책이 있다면 손대기 전에 살펴보게.",
+      billy: "성소에 온 것을 환영하네. 네 신념을 소중히 여기게나.",
+      fonta: "어서 오세요. 도움이 필요하면 편하게 말씀해 주세요.",
+      gale: "훈련은 서두르지 말고 기본부터 익히도록.",
+      bell: "길드에 오신 걸 환영해요. 가입과 의뢰 안내를 도와드릴게요.",
+      yon: "직업과 기술은 신중하게 선택해. 선택이 모험의 방향을 바꾼다.",
+      cheorkol: "거래할 물건이 있나? 매입 목록을 확인해 보게."
+    };
+    animate("talking", 1000);
+    openModal(npc.name + "과(와)의 대화", '<div class="npc-dialogue"><div class="npc-portrait portrait-' + escapeHtml(id) + '">' + escapeHtml(npc.name.slice(0,1)) + '</div><div><b>' + escapeHtml(npc.name) + '</b><p>“' + escapeHtml(lines[id] || npc.temperament) + '”</p></div></div><button class="primary-modal" id="dialogueCloseBtn">대화 마치기</button>');
+    record("NPC 대화", npc.name + "과(와) 대화했다.");
+  }
+
+  function sellApples() {
+    const count = state.inventory.filter((item) => item.id === "big-apple").length;
+    if (!count) { openModal("큰사과 매입", "<p>판매할 큰사과가 없습니다.</p>"); return; }
+    state.inventory = state.inventory.filter((item) => item.id !== "big-apple");
+    state.gold += count * 5;
+    save(); renderCharacterPanel();
+    record("아이템 판매", "큰사과 " + count + "개를 " + (count * 5) + "G에 판매했다.");
+    openModal("판매 완료", "<p>큰사과 " + count + "개를 판매해 " + (count * 5) + "G를 받았습니다.</p><p>현재 골드: " + state.gold + "G</p>");
+  }
   modal.addEventListener("click", (event) => {
     if (event.target === modal) closeModal();
   });
 
   modalContent.addEventListener("click", (event) => {
     const target = event.target;
+    if (target.id === "dialogueCloseBtn") { showFacility("shop"); return; }
+    if (target.id === "sellApplesBtn") { sellApples(); return; }
+    if (target.dataset.npcTalk) { npcDialogue(target.dataset.npcTalk); return; }
     if (target.id === "rollCharacterBtn") {
       rollCharacterPreview();
       return;
