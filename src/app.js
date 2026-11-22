@@ -252,7 +252,7 @@
 
   const directions={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
   function move(direction) {
-    if (!directions[direction] || !state.character || state.activeEncounter || !dialogueScreen.hidden || !modal.hidden) return;
+    if (!directions[direction] || state.activeEncounter || !dialogueScreen.hidden || !modal.hidden) return;
     const [dx,dy]=directions[direction], step=state.region==="forest"?42:38;
     state.worldX=Math.max(55,Math.min(1540,state.worldX+dx*step));
     state.worldY=Math.max(100,Math.min(860,state.worldY+dy*step));
@@ -269,6 +269,13 @@
     }
     renderActors();renderWorldItems();updateForestHud();save();
   }
+  let heldDirection = null, heldMoveTimer = null;
+  function startMoving(direction) {
+    stopMoving(); heldDirection = direction; move(direction);
+    heldMoveTimer = window.setInterval(() => { if (heldDirection) move(heldDirection); }, 145);
+  }
+  function stopMoving() { heldDirection = null; if (heldMoveTimer) window.clearInterval(heldMoveTimer); heldMoveTimer = null; }
+
   function scheduleApple() {
     if(state.nextForestAppleStep==null && !state.groundItems.some(x=>x.id==="big-apple"&&x.location==="forest")) {
       const cfg=(DATA.forestItems&&DATA.forestItems.bigApple)||{spawnStepMin:1,spawnStepMax:120};
@@ -433,7 +440,7 @@
   // UI event handlers
   $("newGameBtn").addEventListener("click",characterForm);
   $("fullscreenBtn").addEventListener("click",async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch{notify("전체 화면을 사용할 수 없습니다.");}});
-  $("forestBtn").addEventListener("click",()=>{if(state.region==="forest")setRegion("village");else if(state.region.startsWith("facility-"))setRegion("village");else {if(!state.character){characterForm();return;}scheduleApple();setRegion("forest");record("지역 이동","바텀웨이 숲에 진입했다.");notify("바텀웨이 숲에 도착했습니다.");}});
+  $("forestBtn").addEventListener("click",()=>{if(state.region==="forest")setRegion("village");else if(state.region.startsWith("facility-"))setRegion("village");else {scheduleApple();setRegion("forest");record("지역 이동","바텀웨이 숲에 진입했다.");notify("바텀웨이 숲에 도착했습니다.");}});
   $("moveBtn").addEventListener("click",()=>move("up"));
   $("talkBtn").addEventListener("click",interact);
   $("attackBtn").addEventListener("click",()=>{if(!state.character){characterForm();return;}hero.classList.add("attacking");setTimeout(()=>hero.classList.remove("attacking"),650);message("공격 동작을 연습했습니다.","실제 피해 판정은 전투 규칙 연결 후 실행됩니다.");record("훈련 연출","공격 애니메이션을 연습했다.");});
@@ -448,19 +455,34 @@
     }).join("");
     openModal("바텀웨이마을 시설", "<div class='facility-grid'>" + cards + "</div>");
   });
-  document.querySelectorAll("[data-direction]").forEach(b=>b.addEventListener("click",()=>move(b.dataset.direction)));
+  document.querySelectorAll("[data-direction]").forEach(b=>{
+    b.addEventListener("pointerdown",(e)=>{e.preventDefault();startMoving(b.dataset.direction);});
+    ["pointerup","pointerleave","pointercancel"].forEach(type=>b.addEventListener(type,stopMoving));
+  });
+  window.addEventListener("blur",stopMoving);
   window.addEventListener("keydown",(e)=>{
     if(e.altKey||e.ctrlKey||e.metaKey||!modal.hidden||!dialogueScreen.hidden)return;
     const keys={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
-    if(keys[e.key]){e.preventDefault();move(keys[e.key]);} else if(e.key==="e"||e.key==="E"){e.preventDefault();interact();}
+    if(keys[e.key]){e.preventDefault();if(heldDirection!==keys[e.key])startMoving(keys[e.key]);} else if(e.key==="e"||e.key==="E"){e.preventDefault();interact();}
   });
-  $("npcLayer").addEventListener("click",(e)=>{const b=e.target.closest("[data-npc]");if(b)talkToNpc(b.dataset.npc);});
+  window.addEventListener("keyup",(e)=>{const keys={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};if(keys[e.key]===heldDirection)stopMoving();});\n  $("npcLayer").addEventListener("click",(e)=>{const b=e.target.closest("[data-npc]");if(b)talkToNpc(b.dataset.npc);});
   $("facilityHotspots").addEventListener("click",(e)=>{const f=e.target.closest("[data-facility]");if(f)enterFacility(f.dataset.facility);if(e.target.id==="exitFacilityBtn")exitFacility();if(e.target.id==="useFacilityBtn")facilityContent(state.region.slice(9));});
   $("worldItems").addEventListener("click",(e)=>{const b=e.target.closest("[data-pickup]");if(b)pickup(b.dataset.pickup);});
   $("dialogueChoices").addEventListener("click",(e)=>{const b=e.target.closest("[data-choice]");if(b)sendDialogue(b.dataset.choice);});
   $("dialogueForm").addEventListener("submit",(e)=>{e.preventDefault();sendDialogue($("dialogueInput").value);});
   $("dialogueClose").addEventListener("click",closeDialogue);
-  $("scene").addEventListener("dblclick",(e)=>{if(state.region.startsWith("facility-"))return;const r=scene.getBoundingClientRect();const scale=Math.min(r.width/1600,r.height/900);state.worldX=Math.max(45,Math.min(1550,(e.clientX-r.left-(r.width-1600*scale)/2)/scale));state.worldY=Math.max(90,Math.min(870,(e.clientY-r.top-(r.height-900*scale)/2)/scale));renderMapCamera();message("목표 위치로 이동했습니다.");if(state.region==="forest")processForestStep();else record("이동","마을 안에서 위치를 옮겼다.");});
+  $("scene").addEventListener("click",(e)=>{
+    if(e.target.closest("button,.dialogue-screen,.scene-hud,.direction-pad") || !modal.hidden || !dialogueScreen.hidden) return;
+    if(e.detail>1 || state.activeEncounter) return;
+    const r=scene.getBoundingClientRect(), scale=Math.min(r.width/1600,r.height/900);
+    const targetX=(e.clientX-r.left-(r.width-1600*scale)/2)/scale;
+    const targetY=(e.clientY-r.top-(r.height-900*scale)/2)/scale;
+    const dx=targetX-state.worldX,dy=targetY-state.worldY;
+    const dir=Math.abs(dx)>Math.abs(dy)?(dx<0?"left":"right"):(dy<0?"up":"down");
+    startMoving(dir);
+    const stopAtTarget=()=>{const d=Math.hypot(targetX-state.worldX,targetY-state.worldY);if(d<42||state.activeEncounter){stopMoving();scene.removeEventListener("pointermove",stopAtTarget);}};
+    const watcher=window.setInterval(()=>{if(Math.hypot(targetX-state.worldX,targetY-state.worldY)<48||state.activeEncounter){stopMoving();clearInterval(watcher);}},80);
+  });
   $("closeModal").addEventListener("click",closeModal);modal.addEventListener("click",(e)=>{if(e.target===modal)closeModal();});
   modalContent.addEventListener("click",(e)=>{
     const t=e.target;
