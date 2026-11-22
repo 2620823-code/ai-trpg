@@ -147,4 +147,4 @@ window.AITRPG_DATA.npcs = [
   {id:"cheorkol",name:"처콜",facility:"길드",role:"길드 상점 담당",temperament:"돈과 사교를 좋아하며 흥정은 거절한다.",canBattle:false}
 ];
 
-window.AITRPG_DATA.statPrototypeNote = "NPC와 마물 능력치는 캐릭터 생성용 주사위 범위를 임시 재사용한 테스트 값이다. NPC·마물 전용 생성 규칙이나 전투 밸런스로 확정된 것이 아니다.";
+window.AITRPG_DATA.statPrototypeNote = "NPC 능력치는 캐릭터 공통 주사위 범위를 임시 재사용한 테스트 값이다. NPC 전용 생성 규칙이나 전투 밸런스로 확정된 것이 아니다.";
