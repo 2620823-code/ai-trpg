@@ -697,13 +697,11 @@
     if(t.dataset.acceptQuest)acceptGeneralQuest(t.dataset.acceptQuest);
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
-    if(t.id==="libraryQuest")openModal("도서관 의뢰","<p>책의 미믹 3마리 처치. 보상은 20G와 스킬북 1개입니다.</p>");
+    if(t.id==="libraryQuest"){const q=state.quests["book-mimic-hunt"];openModal("도서관 의뢰","<p>책의 미믹 3마리 처치 · "+(q.defeated||0)+"/3</p><p>보상: 20G + 스킬북 1개 + 10 LP</p>");}
     if(t.id==="joinGuild"){state.character.guild=state.character.guild||{};state.character.guild.joined=true;state.guildJoined=true;save();record("길드 가입","무료로 길드에 가입했다.");facilityContent("guild");}
     if(t.id==="revivePlayer"){if(state.gold<200){notify("부활 비용 200G가 부족합니다.");return;}state.gold-=200;state.character.dead=false;state.character.hp=state.character.maxHp;save();renderCharacter();record("부활","성소에서 200G를 지불하고 부활했다.");facilityContent("sanctuary");}
     if(t.id==="startTraining"){if(state.gold<20){notify("훈련장 입장료 20G가 부족합니다.");return;}state.gold-=20;state.character.training=state.character.training||{gauge:0,turns:0,braveDashCount:0};state.character.training.turns=20;state.character.training.active=true;state.character.training.sessionOnlyStruggle=true;save();record("훈련 시작","20G 지불 · 20턴 훈련 시작");trainingPanel();}
     if(t.dataset.trainSkill)trainingTurn(t.dataset.trainSkill);
-    if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
-    if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
     if(t.dataset.enter){closeModal();enterFacility(t.dataset.enter);}
     if(t.dataset.talk){closeModal();talkToNpc(t.dataset.talk);}
     if(t.dataset.buy!==undefined){
