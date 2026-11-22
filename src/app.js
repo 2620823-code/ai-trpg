@@ -465,7 +465,8 @@
     const keys={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
     if(keys[e.key]){e.preventDefault();if(heldDirection!==keys[e.key])startMoving(keys[e.key]);} else if(e.key==="e"||e.key==="E"){e.preventDefault();interact();}
   });
-  window.addEventListener("keyup",(e)=>{const keys={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};if(keys[e.key]===heldDirection)stopMoving();});\n  $("npcLayer").addEventListener("click",(e)=>{const b=e.target.closest("[data-npc]");if(b)talkToNpc(b.dataset.npc);});
+  window.addEventListener("keyup",(e)=>{const keys={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};if(keys[e.key]===heldDirection)stopMoving();});;
+  $("npcLayer").addEventListener("click",(e)=>{const b=e.target.closest("[data-npc]");if(b)talkToNpc(b.dataset.npc);});
   $("facilityHotspots").addEventListener("click",(e)=>{const f=e.target.closest("[data-facility]");if(f)enterFacility(f.dataset.facility);if(e.target.id==="exitFacilityBtn")exitFacility();if(e.target.id==="useFacilityBtn")facilityContent(state.region.slice(9));});
   $("worldItems").addEventListener("click",(e)=>{const b=e.target.closest("[data-pickup]");if(b)pickup(b.dataset.pickup);});
   $("dialogueChoices").addEventListener("click",(e)=>{const b=e.target.closest("[data-choice]");if(b)sendDialogue(b.dataset.choice);});
