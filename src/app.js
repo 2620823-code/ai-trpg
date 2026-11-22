@@ -120,7 +120,7 @@
   function renderCharacter() {
     const c = state.character;
     $("heroName").textContent = c ? c.name : state.name;
-    document.querySelector(".character-name span").textContent = c ? c.raceName + " · " + c.jobName : "캐릭터 생성 필요";
+    document.querySelector(".character-name span").textContent = c ? c.raceName + " · " + (c.jobName || "무직") : "캐릭터 생성 필요";
     document.querySelector(".level-row").innerHTML = c ? "<span>LEVEL "+c.level+"</span><span>LP "+(c.lp||0)+" / "+(c.nextLp||requiredLp(c.level))+"</span>" : "<span>LEVEL —</span><span>EXP —</span>";
     document.querySelector(".stat-list").innerHTML = c ?
       "<div><span>HP</span><b>"+c.hp+" / "+c.maxHp+"</b></div><div class='meter hp'><i style='width:"+(100*c.hp/c.maxHp)+"%'></i></div>"+
@@ -130,10 +130,9 @@
   let characterReviewPassed=false,characterReviewBusy=false;
   function characterForm() {
     const races = (DATA.races || []).map((r)=>"<option value='"+escape(r.id)+"'>"+escape(r.name)+"</option>").join("");
-    const jobs = (DATA.jobs || []).map((j)=>"<option value='"+escape(j.id)+"'>"+escape(j.name)+"</option>").join("");
     characterReviewPassed=false;
-    openModal("새 캐릭터 생성", "<p>종족과 직업을 선택하고 외모·성격·배경을 작성하세요. 배경은 바텀웨이마을에 도착하게 된 경위를 포함해 200자 이상이어야 합니다.</p>"+
-      "<label>이름</label><input id='charName' maxlength='20' value='이름 없는 모험가'><label>종족</label><select id='charRace'>"+races+"</select><label>직업</label><select id='charJob'>"+jobs+"</select>"+
+    openModal("새 캐릭터 생성", "<p>종족을 선택하고 외모·성격·배경을 작성하세요. 직업은 캐릭터 생성 후 길드에서 직업 담당 NPC 욘과 대화해 선택합니다.</p>"+
+      "<label>이름</label><input id='charName' maxlength='20' value='이름 없는 모험가'><label>종족</label><select id='charRace'>"+races+"</select>"+
       "<label>외모</label><textarea id='charAppearance' rows='2' maxlength='500' placeholder='캐릭터의 외모를 작성하세요.'></textarea><label>성격</label><textarea id='charPersonality' rows='2' maxlength='500' placeholder='캐릭터의 성격과 행동 방식을 작성하세요.'></textarea><label>배경 이야기 (200자 이상)</label><textarea id='charBackground' rows='6' maxlength='3000' minlength='200' placeholder='바텀웨이마을에 도착한 이유와 과거를 포함해 작성하세요.'></textarea>"+
       "<button class='primary-modal' id='reviewCharacter'>AI 심사관 3명에게 설정 검토 요청</button><div id='reviewResults'></div><div id='rollPreview'><p class='muted'>AI 심사를 통과한 뒤 능력치 주사위를 굴릴 수 있습니다.</p></div><button class='primary-modal' id='rollChar' disabled>능력치 주사위 굴리기</button><button class='primary-modal' id='saveChar' disabled>캐릭터 생성</button>");
     pendingCharacter = null;
@@ -143,7 +142,7 @@
     const background=$("charBackground").value.trim();
     if(background.length<200){notify("배경 이야기를 200자 이상 작성해야 합니다.");return;}
     characterReviewBusy=true;const button=$("reviewCharacter");button.disabled=true;button.textContent="심사 중...";
-    const profile={race:DATA.races.find(x=>x.id===$("charRace").value)?.name,job:DATA.jobs.find(x=>x.id===$("charJob").value)?.name,appearance:$("charAppearance").value,personality:$("charPersonality").value,background};
+    const profile={race:DATA.races.find(x=>x.id===$("charRace").value)?.name,appearance:$("charAppearance").value,personality:$("charPersonality").value,background};
     try{
       const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"review",profile})});
       const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"심사 요청 실패");
@@ -160,10 +159,10 @@
     if(!characterReviewPassed){notify("먼저 AI 심사를 통과해야 합니다.");return;}
     const name = $("charName").value.trim() || "이름 없는 모험가";
     if(!$("charAppearance").value.trim()||!$("charPersonality").value.trim()){notify("외모와 성격을 작성해야 합니다.");return;}
-    const raceId = $("charRace").value, jobId = $("charJob").value;
+    const raceId = $("charRace").value;
     const stats = applyRace(baseStats(), raceId);
-    const race = DATA.races.find((r)=>r.id===raceId), job = DATA.jobs.find((j)=>j.id===jobId);
-    pendingCharacter = {...stats,name,raceId,raceName:race.name,jobId,jobName:job.name,appearance:$("charAppearance").value.trim(),personality:$("charPersonality").value.trim(),background:$("charBackground").value.trim(),level:1,lp:0,nextLp:50,statPoints:0,exp:0,nextExp:50,skills:["이판사판"],equippedSkills:["이판사판"],inventory:[],equipment:{weapon:null,armor:null},guild:{joined:false,rank:0},training:{gauge:0,turns:0,braveDashCount:0},dead:false};
+    const race = DATA.races.find((r)=>r.id===raceId);
+    pendingCharacter = {...stats,name,raceId,raceName:race.name,jobId:null,jobName:"무직",appearance:$("charAppearance").value.trim(),personality:$("charPersonality").value.trim(),background:$("charBackground").value.trim(),level:1,lp:0,nextLp:50,statPoints:0,exp:0,nextExp:50,skills:["이판사판"],equippedSkills:["이판사판"],inventory:[],equipment:{weapon:null,armor:null},guild:{joined:false,rank:0},training:{gauge:0,turns:0,braveDashCount:0},dead:false};
     $("rollPreview").innerHTML = statsHtml(pendingCharacter); $("saveChar").disabled = false;
   }
   function saveCharacter() {
@@ -172,7 +171,7 @@
     state.character = pendingCharacter; state.name = pendingCharacter.name; state.gold = 200; state.guildJoined=false;
     state.position = "바텀웨이마을 광장"; state.region = "village"; state.worldX = 800; state.worldY = 510;
     state.day = 1; state.inventory = []; state.activeEncounter = null;
-    closeModal(); renderCharacter(); renderWorld(); record("캐릭터 생성", state.name+" · "+pendingCharacter.raceName+" · "+pendingCharacter.jobName+" · 시작 골드 200G");
+    closeModal(); renderCharacter(); renderWorld(); record("캐릭터 생성", state.name+" · "+pendingCharacter.raceName+" · 무직 · 시작 골드 200G");
   }
 
   function renderMapCamera() {
@@ -561,6 +560,25 @@
     renderDialogue();hero.classList.add("talking");
     record("NPC 대화 시작",npc.name+"에게 말을 걸었다.");
   }
+
+  function showJobSelection(){
+    const c=state.character;
+    if(!c){notify("먼저 캐릭터를 생성해야 합니다.");return;}
+    if(!c.guild?.joined && !state.guildJoined){
+      dialogueHistory.push({speaker:"npc",text:"먼저 벨에게 길드 등록을 신청해. 등록이 끝나면 내가 직업 선택을 도와주지."});
+      renderDialogue();return;
+    }
+    const jobs=(DATA.jobs||[]).map(j=>"<button class='primary-modal' data-select-job='"+escape(j.id)+"'>"+escape(j.name)+"</button>").join("");
+    openModal("욘 · 직업 선택","<p>길드 등록이 확인되었습니다. 원하는 기본 직업을 선택하세요. 직업 선택 전까지는 무직입니다.</p><div class='job-choice-list'>"+jobs+"</div>");
+  }
+  function selectJob(id){
+    const c=state.character,job=(DATA.jobs||[]).find(j=>j.id===id);if(!c||!job)return;
+    if(c.jobId){notify("이미 직업을 선택했습니다.");return;}
+    c.jobId=job.id;c.jobName=job.name;
+    save();renderCharacter();record("직업 선택","길드 NPC 욘을 통해 "+job.name+" 직업을 선택했다.");
+    closeModal();
+    if(currentNpc?.id==="yon"){dialogueHistory.push({speaker:"npc",text:job.name+"으로 결정했군. 앞으로의 수련과 기술 습득은 이 직업을 기준으로 진행하게."});renderDialogue();}
+  }
   async function sendDialogue(text) {
     if(!currentNpc||!text.trim())return;
     const clean=text.trim().slice(0,160),npc=currentNpc;
@@ -829,7 +847,7 @@
   $("npcLayer").addEventListener("click",(e)=>{const b=e.target.closest("[data-npc]");if(b)talkToNpc(b.dataset.npc);});
   $("facilityHotspots").addEventListener("click",(e)=>{const f=e.target.closest("[data-facility]");if(f)enterFacility(f.dataset.facility);if(e.target.id==="exitFacilityBtn")exitFacility();if(e.target.id==="useFacilityBtn")facilityContent(state.region.slice(9));});
   $("worldItems").addEventListener("click",(e)=>{const b=e.target.closest("[data-pickup]");if(b)pickup(b.dataset.pickup);});
-  $("dialogueChoices").addEventListener("click",(e)=>{const b=e.target.closest("[data-choice]");if(b)sendDialogue(b.dataset.choice);});
+  $("dialogueChoices").addEventListener("click",(e)=>{const b=e.target.closest("[data-choice]");if(!b)return;const choice=b.dataset.choice;if(currentNpc?.id==="yon" && /직업을 선택/.test(choice)){showJobSelection();return;}sendDialogue(choice);});
   $("dialogueForm").addEventListener("submit",(e)=>{e.preventDefault();sendDialogue($("dialogueInput").value);});
   $("dialogueClose").addEventListener("click",closeDialogue);
   $("scene").addEventListener("click",(e)=>{
@@ -844,6 +862,7 @@
     const stopAtTarget=()=>{const d=Math.hypot(targetX-state.worldX,targetY-state.worldY);if(d<42||state.activeEncounter){stopMoving();scene.removeEventListener("pointermove",stopAtTarget);}};
     const watcher=window.setInterval(()=>{if(Math.hypot(targetX-state.worldX,targetY-state.worldY)<48||state.activeEncounter){stopMoving();clearInterval(watcher);}},80);
   });
+  $("modalContent").addEventListener("click",(e)=>{const b=e.target.closest("[data-select-job]");if(b)selectJob(b.dataset.selectJob);});
   $("closeModal").addEventListener("click",closeModal);modal.addEventListener("click",(e)=>{if(e.target===modal)closeModal();});
   modalContent.addEventListener("input",(e)=>{if(["charRace","charJob","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
   function exportSaveFile(){
