@@ -864,7 +864,7 @@
   });
   $("modalContent").addEventListener("click",(e)=>{const b=e.target.closest("[data-select-job]");if(b)selectJob(b.dataset.selectJob);});
   $("closeModal").addEventListener("click",closeModal);modal.addEventListener("click",(e)=>{if(e.target===modal)closeModal();});
-  modalContent.addEventListener("input",(e)=>{if(["charRace","charJob","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
+  modalContent.addEventListener("input",(e)=>{if(["charRace","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
   function exportSaveFile(){
     const raw=localStorage.getItem(KEY);if(!raw){notify("내보낼 저장 데이터가 없습니다.");return;}
     const blob=new Blob([raw],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
