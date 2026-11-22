@@ -14,7 +14,7 @@
   };
   function readState() {
     try {
-      for (const key of [KEY, ...OLD]) {
+      for (const key of [KEY, KEY+"-backup", ...OLD]) {
         const raw = localStorage.getItem(key);
         if (!raw) continue;
         const saved = JSON.parse(raw);
