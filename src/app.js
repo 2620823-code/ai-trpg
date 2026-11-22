@@ -443,8 +443,11 @@
 
   function processForestStep() {
     state.forestSteps += 1;
-    if (state.nextForestAppleStep == null) scheduleForestApple();
-    if (state.forestSteps >= state.nextForestAppleStep) spawnForestApple();
+    if (state.nextForestAppleStep == null &&
+        !state.groundItems.some((item) => item.id === "big-apple" && item.location === "forest")) {
+      scheduleForestApple();
+    }
+    if (state.nextForestAppleStep != null && state.forestSteps >= state.nextForestAppleStep) spawnForestApple();
     if (state.forestSteps % DATA.encounters.forest.stepInterval === 0) {
       rollForEncounter("forest");
     } else if (!state.groundItems.some((item) => item.location === "forest")) {
@@ -462,7 +465,7 @@
     const action = progress.status === "available"
       ? '<button class="primary-modal" id="acceptLibraryQuestBtn">의뢰 수락</button>'
       : progress.status === "in_progress"
-        ? '<button class="primary-modal" id="libraryStepBtn">서가 탐색 1발자국 이동</button>'
+        ? "<p>의뢰가 진행 중입니다. 아래 서가 탐색을 이용하세요.</p>"
         : "<p>의뢰 보상을 수령했습니다.</p>";
     return "<div class=\"npc-note\"><b>" + escapeHtml(q.name) + "</b>" +
       "<p>" + escapeHtml(q.description) + "</p><p>진행도: " + progress.defeated + " / " + q.targetCount +
@@ -481,6 +484,7 @@
     state.librarySteps += 1;
     if (state.librarySteps % DATA.encounters.library.stepInterval === 0) {
       rollForEncounter("library");
+      if (state.activeEncounter) return;
     } else {
       message("도서관 서가 사이를 이동했다. (" + state.librarySteps + "발자국)", "책의 미믹 조우 판정은 50발자국마다 진행됩니다.");
       record("도서관 탐색", "서가를 1발자국 이동했다.");
@@ -488,7 +492,7 @@
     showFacility("library");
   }
 
-  function addMonsterRemains(monster) {
+  function addMonsterRemains(monster, location) {
     const remains = {
       id: "monster-remains",
       name: "마물 유해",
@@ -496,7 +500,7 @@
       sourceMonster: monster.name
     };
     if (!addInventoryItem(remains)) {
-      addGroundItem(remains, state.region);
+      addGroundItem(remains, location === "library" ? "library" : "forest");
       message("인벤토리가 가득 차 마물 유해가 바닥에 남았다.", "인벤토리 30칸을 비운 뒤 드롭 아이템을 주울 수 있습니다.");
     }
   }
@@ -506,7 +510,7 @@
     const encounter = state.activeEncounter;
     const monster = monsterForEncounter(encounter.monsterId);
     if (!monster) return;
-    addMonsterRemains(monster);
+    addMonsterRemains(monster, encounter.location);
     if (monster.id === "book-mimic") {
       const q = DATA.libraryQuest;
       const progress = state.quests[q.id];
@@ -696,7 +700,8 @@
     if (f.board) lines.push("<h3>의뢰 게시판</h3><ul>" + f.board.map((x) => "<li>" + escapeHtml(x) + "</li>").join("") + "</ul>");
     if (f.id === "library") lines.push("<h3>도서관 의뢰</h3>" + showLibraryQuest() +
       "<h3>서가 탐색</h3><p>누적 탐색 " + state.librarySteps + "발자국 · 50발자국마다 1d100, 20 이하이면 책의 미믹 조우</p>" +
-      '<button class="primary-modal" id="libraryStepBtn">서가에서 1발자국 이동</button>');
+      '<button class="primary-modal" id="libraryStepBtn">서가에서 1발자국 이동</button>' +
+      "<h3>도서관 바닥의 아이템</h3>" + renderGroundItems("library"));
     if (f.id === "guild") lines.push("<h3>마물 유해 매입</h3>" +
       '<button class="primary-modal" id="guildBuybackBtn">유해 매입 목록 보기</button>');
     openModal(f.name, "<p>" + escapeHtml(f.summary) + "</p>" + lines.join("") +
