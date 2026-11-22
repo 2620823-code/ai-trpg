@@ -500,7 +500,7 @@
     const f=facilities.find(x=>x.id===id);if(!f)return;
     let html="<p>"+escape(f.summary)+"</p>";
     if(f.entryFee!==undefined) html+="<p>입장료: "+f.entryFee+"G</p>";
-    if(f.items) html+="<h3>판매 목록</h3><div class='shop-list'>"+f.items.map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-buy='"+i+"'>정보</button></div>").join("")+"</div><p>큰사과는 개당 5G에 판매할 수 있습니다.</p><button class='primary-modal' id='sellApples'>큰사과 판매</button>";
+    if(f.items) html+="<h3>판매 목록</h3><div class='shop-list'>"+f.items.map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-buy='"+i+"'>구매</button></div>").join("")+"</div><p>큰사과는 개당 5G에 판매할 수 있습니다.</p><button class='primary-modal' id='sellApples'>큰사과 판매</button>";
     if(f.rules)html+="<h3>이용 규칙</h3><ul>"+f.rules.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
     if(f.books)html+="<h3>소장 도서</h3><ul>"+f.books.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
     if(f.deities)html+="<h3>신앙 대상</h3><p>"+f.deities.map(escape).join(" · ")+"</p>";
@@ -509,8 +509,26 @@
     openModal(f.name+" · 시설 이용",html);
   }
   function showInventory() {
-    const slots=state.inventory.map((item,i)=>"<div class='inventory-item'><b>"+(i+1)+". "+escape(item.name)+"</b><small>"+escape(item.type||"아이템")+"</small></div>").join("");
-    openModal("가방", "<p>아이템 "+state.inventory.length+" / 30칸 · 보유 골드 "+state.gold+"G</p>"+(slots||"<p>보유한 아이템이 없습니다.</p>"));
+    const c=state.character,weapon=c&&c.equipment&&c.equipment.weapon;
+    const slots=state.inventory.map((item,i)=>"<div class='inventory-item'><b>"+(i+1)+". "+escape(item.name)+"</b><small>"+escape(item.type||"아이템")+(item.type==="무기"?" · PP "+item.pp+"/"+item.maxPp:"")+"</small><button class='primary-modal' data-use-item='"+escape(item.instanceId)+"'>"+(item.type==="무기"?"장착":item.type==="소모품"||item.id==="big-apple"?"사용":"정보")+"</button></div>").join("");
+    openModal("가방","<p>아이템 "+state.inventory.length+" / 30칸 · 보유 골드 "+state.gold+"G</p><h3>장착 칸</h3><div class='inventory-item'><b>무기</b><small>"+(weapon?escape(weapon.name)+" · PP "+weapon.pp+"/"+weapon.maxPp:"비어 있음")+"</small></div>"+(slots||"<p>보유한 아이템이 없습니다.</p>"));
+  }
+  function useInventoryItem(instanceId){
+    const index=state.inventory.findIndex(x=>x.instanceId===instanceId);if(index<0)return;
+    const item=state.inventory[index],c=state.character;if(!c)return;
+    if(item.type==="무기"){
+      if(item.id==="shop-0"&&c.jobId!=="swordsman"||item.id==="shop-1"&&c.jobId!=="rogue"||item.id==="shop-3"&&!["mage","dark-mage"].includes(c.jobId)||item.id==="shop-4"&&!["technician","swordsman","rogue"].includes(c.jobId)){notify("직업 제한으로 장착할 수 없습니다.");return;}
+      const old=c.equipment.weapon;if(old)state.inventory.push(old);
+      c.equipment.weapon=item;state.inventory.splice(index,1);
+      record("무기 장착",item.name+" 장착");
+    }else if(item.type==="소모품"||item.id==="big-apple"){
+      const match=String(item.effect||"").match(/HP\s*\+\s*(\d+)/);
+      const heal=match?Number(match[1]):item.id==="big-apple"?Math.floor(c.maxHp/4):0;
+      if(!heal){notify("사용할 수 없는 아이템입니다.");return;}
+      if(c.hp>=c.maxHp){notify("HP가 이미 최대치입니다.");return;}
+      c.hp=Math.min(c.maxHp,c.hp+heal);state.inventory.splice(index,1);record("아이템 사용",item.name+" · HP "+heal+" 회복");
+    }else{openModal(item.name,"<p>"+escape(item.effect||"서적 또는 재료 아이템")+"</p>");return;}
+    save();renderCharacter();showInventory();
   }
   function sellApples() {
     const count=state.inventory.filter(i=>i.id==="big-apple").length;
@@ -585,7 +603,21 @@
     if(t.id==="libraryQuest")openModal("도서관 의뢰","<p>책의 미믹 3마리 처치. 보상은 20G와 스킬북 1개입니다.</p>");
     if(t.dataset.enter){closeModal();enterFacility(t.dataset.enter);}
     if(t.dataset.talk){closeModal();talkToNpc(t.dataset.talk);}
-    if(t.dataset.buy){const f=facilities.find(x=>x.id==="shop");const item=f&&f.items[Number(t.dataset.buy)];if(item)openModal(item.name,"<p>가격: "+item.price+"G</p><p>"+escape(item.effect)+"</p><p class='muted'>구매 및 장비 기능은 아직 게임 인벤토리 규칙과 완전히 연결하지 않았습니다.</p>");}
+    if(t.dataset.buy!==undefined){
+      const f=facilities.find(x=>x.id==="shop"),item=f&&f.items[Number(t.dataset.buy)];
+      if(item){
+        if(state.gold<item.price){notify("골드가 부족합니다.");return;}
+        const restriction=item.restriction||"";
+        if(/검사 계열/.test(restriction)&&state.character.jobId!=="swordsman"||/도적 계열/.test(restriction)&&state.character.jobId!=="rogue"||/격투가 전용/.test(restriction)&&state.character.jobId!=="fighter"){notify("현재 직업은 구매할 수 없습니다.");return;}
+        if(state.inventory.length>=30){notify("인벤토리가 가득 찼습니다.");return;}
+        const bonusMatch=item.effect.match(/(?:보정치|보정)\s*\+\s*(\d+)/),ppMatch=item.effect.match(/PP\s*(\d+)/);
+        const weapon=item.type==="무기";
+        const obj={id:"shop-"+Number(t.dataset.buy),name:item.name,type:weapon?"무기":item.type==="회복"?"소모품":item.type,effect:item.effect,bonus:bonusMatch?Number(bonusMatch[1]):0,pp:ppMatch?Number(ppMatch[1]):weapon?10:0,maxPp:ppMatch?Number(ppMatch[1]):weapon?10:0,restriction};
+        state.gold-=item.price;obj.instanceId=Date.now()+"-"+Math.random().toString(36).slice(2);state.inventory.push(obj);
+        save();renderCharacter();record("상점 구매",item.name+" · "+item.price+"G");facilityContent("shop");
+      }
+    }
+    if(t.dataset.useItem)useInventoryItem(t.dataset.useItem);
   });
   document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
     const v=b.dataset.view;
