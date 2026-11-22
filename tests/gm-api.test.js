@@ -117,3 +117,16 @@ test("AI GM rejects generated story options shorter than 200 characters", async 
     assert.equal(JSON.parse(res.body).error,"INVALID_STORY_OPTIONS");
   }finally{global.fetch=previous;}
 });
+
+test("AI Gateway access restrictions return a safe account-admin message", async () => {
+  const previous=global.fetch;
+  global.fetch=async()=>({ok:false,status:403,text:async()=>JSON.stringify({error:{message:"AI Gateway requires a valid credit card on file to service requests."}})});
+  try{
+    const res=responseMock();
+    await handler({method:"POST",headers:{"x-forwarded-for":"test-gateway-403","x-vercel-oidc-token":"test-token"},body:{mode:"storyOptions",profile:{race:"인간"}}},res);
+    const result=JSON.parse(res.body);
+    assert.equal(res.statusCode,503);
+    assert.equal(result.error,"AI_ACCESS_RESTRICTED");
+    assert.ok(!JSON.stringify(result).toLowerCase().includes("credit card"));
+  }finally{global.fetch=previous;}
+});
