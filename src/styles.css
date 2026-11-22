@@ -63,3 +63,8 @@
 #modalContent #reviewResults .inventory-item{background:linear-gradient(145deg,#f8f3e8,#e8e0d0);border:1px solid #c7b48f;color:#273440}
 #modalContent #reviewResults .inventory-item small{display:block;line-height:1.55;color:#53616b;margin-top:5px}
 #modalContent #reviewResults .inventory-item p{line-height:1.55;color:#354550}
+
+.scene-bg-image{display:block;object-fit:cover;image-rendering:auto;filter:saturate(1.08) contrast(1.025)}
+#sceneBg{display:none}
+.scene-vignette{background:linear-gradient(180deg,#11202a08 0%,transparent 54%,#12201918 100%)}
+.scene-title{background:linear-gradient(90deg,#1423348a,transparent);padding:10px 16px 12px;border-radius:10px;backdrop-filter:blur(2px)}
