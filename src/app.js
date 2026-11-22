@@ -560,14 +560,25 @@
     renderDialogue();hero.classList.add("talking");
     record("NPC 대화 시작",npc.name+"에게 말을 걸었다.");
   }
-  function sendDialogue(text) {
+  async function sendDialogue(text) {
     if(!currentNpc||!text.trim())return;
     const clean=text.trim().slice(0,160),npc=currentNpc;
-    const reply=npcResponse(npc.id,clean);
-    dialogueHistory.push({speaker:"player",text:clean},{speaker:"npc",text:reply});
+    dialogueHistory.push({speaker:"player",text:clean},{speaker:"npc",text:"응답을 생각하고 있습니다..."});
     renderDialogue();$("dialogueInput").value="";
     const actor=document.querySelector(".npc-actor[data-npc='"+npc.id+"']");if(actor){actor.classList.add("talking");setTimeout(()=>actor.classList.remove("talking"),800);}
+    let reply="";
+    try{
+      const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        mode:"chat",message:clean,npc:npc.name,npcProfile:{role:npc.role,facility:npc.facility,temperament:npc.temperament},
+        character:state.character?{name:state.character.name,race:state.character.raceName,job:state.character.jobName,level:state.character.level}:null,
+        location:state.position,history:dialogueHistory.slice(-8)
+      })});
+      const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"AI GM 요청 실패");
+      reply=String(result.reply||"").slice(0,2500);if(!reply)throw new Error("빈 응답");
+    }catch(error){reply=npcResponse(npc.id,clean)+" (AI GM 연결 실패로 기본 응답을 표시합니다.)";}
+    const last=dialogueHistory[dialogueHistory.length-1];if(last&&last.speaker==="npc")last.text=reply;
     record("NPC 대화","나: "+clean+" / "+npc.name+": "+reply);
+    if(currentNpc===npc&&!dialogueScreen.hidden)renderDialogue();
     if(npc.id==="denby"&&/상점|물건|구매/.test(clean)){closeDialogue();facilityContent("shop");}
     else if(npc.id==="hamel"&&/미믹|의뢰/.test(clean)){closeDialogue();const q=state.quests["book-mimic-hunt"];openModal("도서관 의뢰","<p>책의 미믹 3마리 처치 · "+(q.defeated||0)+"/3</p><p>보상: 20G + 스킬북 1개 + 10 LP</p>");}
     else if(npc.id==="billy"&&/부활/.test(clean)){closeDialogue();facilityContent("sanctuary");}
