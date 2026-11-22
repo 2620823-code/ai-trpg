@@ -90,3 +90,8 @@ html:fullscreen, body:fullscreen{width:100%;height:100%;overflow:hidden}
 /* 24Hz stepped movement cadence */
 .hero-stage.walking .legs,.hero-stage.walking .left-arm,.hero-stage.walking .right-arm,.hero-stage.walking .sword{animation-timing-function:steps(6,end);animation-duration:.25s}
 @media(max-width:600px){.facility-interior{grid-template-columns:1fr}.interior-art{height:120px}.region-map{grid-template-columns:1fr 35px 1fr;padding:8px}.map-village,.map-forest{padding:12px 4px}}
+
+.npc-portrait{animation:npcIdle 2.4s ease-in-out infinite}
+.npc-dialogue .npc-portrait{animation:npcTalk .42s ease-in-out infinite alternate}
+@keyframes npcIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes npcTalk{from{transform:translateY(0) rotate(-1deg)}to{transform:translateY(-2px) rotate(1deg)}}
