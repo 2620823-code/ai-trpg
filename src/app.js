@@ -110,13 +110,12 @@
       ["행운",s.luck],["속도",s.speed],["정교함",s.precision],["SP",s.sp+" / "+s.maxSp]
     ].map(([k,v])=>"<tr><th>"+k+"</th><td>"+v+"</td></tr>").join("") + "</tbody></table></div>";
   }
-  function requiredLp(level){return Math.max(1,level)*50;}
+  const PROGRESSION=window.AITRPG_PROGRESSION;
+  function requiredLp(level){return PROGRESSION.requiredLp(level);}
   function grantLp(amount,reason){
     const c=state.character;if(!c||c.dead)return;
-    c.lp=(c.lp||0)+amount;let gained=0;
-    while(c.level<10000&&c.lp>=(c.nextLp||requiredLp(c.level))){c.lp-=c.nextLp||requiredLp(c.level);c.level++;c.statPoints=(c.statPoints||0)+1;gained++;c.nextLp=requiredLp(c.level);}
-    c.exp=c.lp;c.nextExp=c.nextLp;
-    record("LP 획득",reason+" · "+amount+" LP"+(gained?" · 레벨 "+c.level+" 상승":""));save();renderCharacter();
+    const result=PROGRESSION.applyLp(c,amount);
+    record("LP 획득",reason+" · "+amount+" LP"+(result.gained?" · 레벨 "+c.level+" 상승":""));save();renderCharacter();
   }
   function renderCharacter() {
     const c = state.character;
