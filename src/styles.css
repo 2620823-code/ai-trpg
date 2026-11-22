@@ -54,3 +54,39 @@ html:fullscreen, body:fullscreen{width:100%;height:100%;overflow:hidden}
 @media(max-width:1050px){.direction-pad{right:12px;bottom:70px}}
 @media(max-width:680px){.direction-pad{right:10px;bottom:70px;width:112px;height:108px}.direction-key{font-size:14px}.direction-hint{font-size:8px}.hero-stage{height:52%;bottom:12%}}
 @media(prefers-reduced-motion:reduce){.hero-stage,.hero-sprite,.cape,.legs,.left-arm,.right-arm,.sword,.hero-shadow{animation:none!important;transition:none!important}}
+
+
+/* Facility interiors, NPC dialogue, and map */
+.facility-interior{display:grid;grid-template-columns:minmax(130px, .9fr) 1.1fr;gap:14px;align-items:center;margin:12px 0 18px;padding:12px;border:1px solid rgba(214,190,145,.25);border-radius:10px;background:#101a23}
+.interior-art{height:150px;position:relative;overflow:hidden;border-radius:7px;display:grid;place-items:center;background:linear-gradient(145deg,#4b3827,#172b35 65%,#0e1720)}
+.interior-art:before,.interior-art:after{content:"";position:absolute;border-radius:50%;filter:blur(1px)}
+.interior-art:before{width:180px;height:180px;background:radial-gradient(circle,rgba(236,194,119,.4),transparent 65%);top:-80px;left:-45px}
+.interior-art:after{width:160px;height:160px;background:radial-gradient(circle,rgba(96,154,180,.28),transparent 70%);bottom:-90px;right:-30px}
+.interior-npc-mark{z-index:1;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-size:35px;font-weight:700;color:#f3dfbd;background:linear-gradient(145deg,#7e674b,#263c50);border:2px solid #d0b47f;box-shadow:0 8px 28px #0008}
+.interior-sign{position:absolute;bottom:8px;z-index:2;padding:4px 12px;border-radius:4px;background:#0c141dcc;color:#ead7b3;font-size:11px}
+.interior-lamp{position:absolute;top:10px;right:14px;color:#f4d28b;text-shadow:0 0 18px #f3c56d;font-size:25px;animation:lampPulse 2s ease-in-out infinite}
+.interior-copy p{font-size:11px!important}
+.facility-library .interior-art{background:linear-gradient(90deg,#271e1b,#6a482f 50%,#211b19)}
+.facility-sanctuary .interior-art{background:linear-gradient(140deg,#73633e,#283b49 60%,#14212b)}
+.facility-training .interior-art{background:linear-gradient(140deg,#8c5736,#3e3028 60%,#18232a)}
+.facility-guild .interior-art{background:linear-gradient(140deg,#52616c,#253847 60%,#111c26)}
+.facility-shop .interior-art{background:linear-gradient(140deg,#8b633d,#4a392d 60%,#1a2930)}
+.npc-dialogue{display:flex;gap:14px;align-items:center;padding:12px;background:#101a23;border:1px solid #4e5b61;border-radius:8px;margin:12px 0}
+.npc-portrait{width:78px;height:90px;flex:none;border-radius:9px;display:grid;place-items:center;font-size:32px;color:#f2dfbd;background:linear-gradient(145deg,#7b8c9b,#263849);border:2px solid #c9aa77}
+.npc-portrait.portrait-denby{background:linear-gradient(145deg,#b18a54,#4c3827)}
+.npc-portrait.portrait-hamel{background:linear-gradient(145deg,#7b9caa,#263b4c)}
+.npc-portrait.portrait-billy,.npc-portrait.portrait-fonta{background:linear-gradient(145deg,#d1b67a,#5c4832)}
+.npc-portrait.portrait-gale{background:linear-gradient(145deg,#87949b,#2a343b)}
+.npc-portrait.portrait-bell{background:linear-gradient(145deg,#d6b17d,#684a53)}
+.npc-portrait.portrait-yon{background:linear-gradient(145deg,#7e8b9d,#2c3447)}
+.npc-portrait.portrait-cheorkol{background:linear-gradient(145deg,#8b9a9a,#394345)}
+.npc-dialogue p{margin:6px 0 0}
+.region-map{height:220px;display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;padding:18px;border-radius:10px;background:linear-gradient(145deg,#31513d,#263e32 50%,#172a25);border:1px solid #a38b62;text-align:center}
+.map-village,.map-forest{padding:20px 8px;border:1px solid #d1bd8a;border-radius:9px;background:#b89a6550;color:#f7ebd2;box-shadow:inset 0 0 20px #0005}
+.map-forest{background:#244e3488}
+.map-village small,.map-forest small{display:block;font-size:10px;margin-top:8px;color:#e1d4b8}
+.map-path{color:#e6d2a4;font-size:11px}
+@keyframes lampPulse{0%,100%{opacity:.6;transform:scale(.95)}50%{opacity:1;transform:scale(1.08)}}
+/* 24Hz stepped movement cadence */
+.hero-stage.walking .legs,.hero-stage.walking .left-arm,.hero-stage.walking .right-arm,.hero-stage.walking .sword{animation-timing-function:steps(6,end);animation-duration:.25s}
+@media(max-width:600px){.facility-interior{grid-template-columns:1fr}.interior-art{height:120px}.region-map{grid-template-columns:1fr 35px 1fr;padding:8px}.map-village,.map-forest{padding:12px 4px}}
