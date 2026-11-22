@@ -338,7 +338,7 @@
     openModal("전투 · "+escape(monster.name),"<div class='encounter-scene'><b>"+escape(monster.name)+"이(가) 나타났다!</b><p>마물의 남은 HP "+e.hp+" / "+e.maxHp+"</p></div>"+
       "<div class='monster-stats'><span>근력 "+s.strength+"</span><span>지능 "+s.intelligence+"</span><span>방어력 "+s.defense+"</span><span>속도 "+s.speed+"</span></div>"+
       "<p>플레이어 HP "+c.hp+"/"+c.maxHp+" · SP "+c.sp+"/"+c.maxSp+"</p>"+
-      "<button class='primary-modal' id='battleAttack'>기본 공격</button><button class='primary-modal' id='battleDefend'>방어</button><button class='primary-modal' id='battleSkill'>스킬</button><button class='primary-modal' id='battleEscape'>도주</button>");
+      "<button class='primary-modal' id='battleAttack'>기본 공격</button><button class='primary-modal' id='battleSkill'>스킬</button><button class='primary-modal' id='battleEscape'>도주</button>");
   }
   function currentMonster(){
     const e=state.activeEncounter;if(!e)return null;
@@ -395,15 +395,6 @@
     }
     if(action==="skill"){
       openModal("스킬 선택","<p>현재 보유 스킬: "+(c.skills||[]).join(" · ")+"</p><p>스킬별 피해 공식과 SP 비용은 확인된 기술 데이터에 연결할 예정입니다. 현재 기본 공격을 사용할 수 있습니다.</p><button class='primary-modal' id='battleBack'>전투로 돌아가기</button>");return;
-    }
-    if(action==="defend"){
-      const hit=roll(100),def=roll(100),hitOK=hit<=55,defOK=def<=50+(c.defense||0)/4;
-      const skills={"weak-goblin":1.2,"weak-spider":1.5,"goblin":1.6};
-      const damage=monster.id==="treasure-mimic"||monster.id==="book-mimic"?(monster.stats.strength+monster.stats.intelligence)*1.9:monster.stats.strength*(skills[monster.id]||1);
-      const taken=hitOK?Math.floor(damage*(defOK?0.25:1)*0.25):0;c.hp=Math.max(0,c.hp-taken);
-      record("방어 행동","명중 주사위 "+hit+" · 방어 주사위 "+def+" · 방어 성공 피해 0.25배 · 방어 자세 추가 피해 0.25배 · 최종 피해 "+taken);
-      if(c.hp<=0){c.dead=true;c.hp=0;state.activeEncounter=null;save();renderCharacter();openModal("사망","<p>보유 아이템은 유지됩니다. 부활 비용은 200G입니다.</p>");return;}
-      save();renderCharacter();showEncounter(monster);return;
     }
     const hit=roll(100),hitOK=hit<=55;
     if(hitOK){
@@ -667,7 +658,7 @@
     if(t.id==="rollChar")rollCharacter();
     if(t.id==="saveChar")saveCharacter();
     if(t.id==="leaveEncounter")leaveEncounter();
-    if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
+    if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
     if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
     if(t.dataset.awakenSkill){openModal("스킬 각성 방식","<p>"+escape(t.dataset.awakenSkill)+"의 각성 효과를 선택하세요.</p><button class='primary-modal' data-awaken-mode='sp' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>SP 소모량 -0.5</button><button class='primary-modal' data-awaken-mode='power' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>위력 배율 +0.1</button>");}
     if(t.dataset.awakenMode)awakenSkill(t.dataset.awakenTarget,t.dataset.awakenMode);
