@@ -50,3 +50,16 @@
 .npc-sprite use{pointer-events:none}
 .map-scene{display:block;width:100%;max-height:390px}
 
+
+
+/* Character review: explicit feedback and AI-generated alternatives */
+#modalContent #charReviewFeedback{min-height:76px;line-height:1.55;background:linear-gradient(145deg,#f7f1e4,#e8dfcc);border:1px solid #b7a27d;border-radius:9px;color:#283542;padding:11px}
+#modalContent .story-option{display:block;margin:12px 0;padding:14px;border:1px solid #c7ad7c;border-radius:12px;background:linear-gradient(145deg,#fff9e9,#e8dfc8);color:#27333d;box-shadow:0 5px 16px #1723321a}
+#modalContent .story-option b{display:block;color:#274966;font-family:"Noto Serif KR",serif;font-size:16px;margin-bottom:7px}
+#modalContent .story-option small{display:block;color:#687780;line-height:1.5}
+#modalContent .story-option p{white-space:pre-wrap;line-height:1.65;font-size:13px;color:#33414b}
+#modalContent .story-option .primary-modal{margin-top:8px;background:linear-gradient(120deg,#315c7c,#24415c);border:1px solid #d0b783;color:#fff3d5}
+#modalContent #storyOptions{margin:12px 0}
+#modalContent #reviewResults .inventory-item{background:linear-gradient(145deg,#f8f3e8,#e8e0d0);border:1px solid #c7b48f;color:#273440}
+#modalContent #reviewResults .inventory-item small{display:block;line-height:1.55;color:#53616b;margin-top:5px}
+#modalContent #reviewResults .inventory-item p{line-height:1.55;color:#354550}
