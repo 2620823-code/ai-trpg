@@ -101,6 +101,8 @@ module.exports=async function handler(req,res){
   }catch(error){
     const code=String(error&&error.message||"AI_ERROR");
     if(code==="AI_GATEWAY_AUTH_MISSING")return send(res,503,{error:"AI_NOT_CONFIGURED",message:"배포 환경에서 AI Gateway 인증을 사용할 수 없습니다."});
-    return send(res,502,{error:"AI_REQUEST_FAILED",message:"AI GM 요청에 실패했습니다.",detail:code.slice(0,100)});
+    if(code.startsWith("AI_GATEWAY_403"))return send(res,503,{error:"AI_ACCESS_RESTRICTED",message:"AI 서비스 계정의 이용 권한이 제한되어 요청을 처리할 수 없습니다. 계정 관리자에게 확인을 요청해 주세요."});
+    console.error("[AI-TRPG] AI request failed:",code.slice(0,180));
+    return send(res,502,{error:"AI_REQUEST_FAILED",message:"AI GM 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",detail:code.split(":")[0].slice(0,40)});
   }
 };
