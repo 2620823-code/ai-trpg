@@ -33,6 +33,11 @@
     return { ...defaults };
   }
   const state = readState();
+  if(state.character){
+    const c=state.character;c.level=c.level||1;c.lp=Number.isFinite(c.lp)?c.lp:Number.isFinite(c.exp)?c.exp:0;c.nextLp=c.nextLp||requiredLp(c.level);
+    c.skills=Array.isArray(c.skills)&&c.skills.length?c.skills:["이판사판"];c.equippedSkills=Array.isArray(c.equippedSkills)?c.equippedSkills:["이판사판"];
+    c.equipment=c.equipment||{weapon:null,armor:null};c.guild=c.guild||{joined:!!state.guildJoined,rank:0};c.training=c.training||{gauge:0,turns:0,braveDashCount:0};c.dead=!!c.dead;
+  }
   const scene = $("scene"), canvas = $("worldCanvas"), hero = $("heroStage");
   const modal = $("modal"), modalContent = $("modalContent");
   const dialogueScreen = $("dialogueScreen");
