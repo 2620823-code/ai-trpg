@@ -51,6 +51,15 @@ module.exports=async function handler(req,res){
       let result;try{result=JSON.parse(text.replace(/^\s*```json\s*|\s*```\s*$/g,""));}catch{return send(res,502,{error:"INVALID_REVIEW_FORMAT"});}
       return send(res,200,{reviews:result.reviews||[],overall:result.overall==="pass"?"pass":"revise"});
     }
+    if(body.mode==="quest"){
+      const allowed=Array.isArray(body.allowedTargets)?body.allowedTargets.filter(x=>x&&typeof x.id==="string"&&typeof x.name==="string").slice(0,8):[];
+      if(!allowed.length)return send(res,400,{error:"NO_ALLOWED_TARGETS"});
+      const prompt="너는 AI-TRPG의 일반 의뢰 생성 담당이다. 제공된 마물 목록 안에서만 대상을 고른다. 새로운 마물·지역·시설·아이템을 만들지 않는다. 중요한 의뢰와 기초 의뢰는 만들지 않는다. 보상은 성공 시 10 LP뿐이며 골드·아이템 보상은 임의로 추가하지 않는다. targetCount는 반드시 1이다. JSON 객체 {title,description,targetMonsterId,targetCount}만 반환한다. targetMonsterId는 허용 목록의 id와 정확히 일치해야 한다. 세계관: "+WORLD_RULES.join(" ")+"\n허용 대상: "+JSON.stringify(allowed);
+      const text=await ask([{role:"system",content:prompt},{role:"user",content:"일반 의뢰 하나를 생성해."}],250);
+      let q;try{q=JSON.parse(text.replace(/^\\s*```json\\s*|\\s*```\\s*$/g,""));}catch{return send(res,502,{error:"INVALID_QUEST_FORMAT"});}
+      if(!allowed.some(x=>x.id===q.targetMonsterId)||!q.title||!q.description)return send(res,502,{error:"INVALID_QUEST_TARGET"});
+      return send(res,200,{title:String(q.title).slice(0,80),description:String(q.description).slice(0,240),targetMonsterId:q.targetMonsterId,targetCount:1,rewardLp:10});
+    }
     const message=String(body.message||"").trim().slice(0,1600);
     if(!message)return send(res,400,{error:"EMPTY_MESSAGE"});
     const npc=String(body.npc||"GM").slice(0,80);
