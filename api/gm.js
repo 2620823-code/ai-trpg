@@ -49,7 +49,10 @@ module.exports=async function handler(req,res){
       const prompt="다음 캐릭터 설정을 세 명의 독립 심사관 관점으로 검토하라. 1) 세계관·연대기 심사관 2) 능력·밸런스 심사관 3) 바텀웨이마을 도착 경위·플레이 가능성 심사관. 각자 통과/수정 필요, 근거, 플레이 가능한 수정 제안을 짧게 작성한다. 종족과 직업은 플레이어 선택이므로 변경하지 않는다. 초능력·왕위·신적 존재·전설급 장비·세계의 핵심 사건 해결 등 과도한 설정은 플레이어가 아직 획득하지 않은 것으로 조정한다. 세 심사관이 모두 통과해야 overall='pass'. 응답은 JSON 객체 {overall:'pass'|'revise',reviews:[{reviewer,verdict,reason,suggestion}]}만 반환한다. 세계 규칙: "+WORLD_RULES.join(" ");
       const text=await ask([{role:"system",content:prompt},{role:"user",content:payload}],900);
       let result;try{result=JSON.parse(text.replace(/^\s*```json\s*|\s*```\s*$/g,""));}catch{return send(res,502,{error:"INVALID_REVIEW_FORMAT"});}
-      return send(res,200,{reviews:result.reviews||[],overall:result.overall==="pass"?"pass":"revise"});
+      const reviews=Array.isArray(result.reviews)?result.reviews.slice(0,3):[];
+      if(reviews.length!==3)return send(res,502,{error:"INCOMPLETE_REVIEW"});
+      const allPassed=reviews.every(x=>String(x.verdict||"").includes("통과"))&&result.overall==="pass";
+      return send(res,200,{reviews,overall:allPassed?"pass":"revise"});
     }
     if(body.mode==="quest"){
       const allowed=Array.isArray(body.allowedTargets)?body.allowedTargets.filter(x=>x&&typeof x.id==="string"&&typeof x.name==="string").slice(0,8):[];
