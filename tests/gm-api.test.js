@@ -1,0 +1,45 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+process.env.VERCEL_OIDC_TOKEN = "test-token";
+const handler = require("../api/gm.js");
+
+function responseMock() {
+  return { statusCode: 0, headers: {}, body: "", setHeader(k,v){this.headers[k]=v;}, end(v){this.body=v;} };
+}
+function completion(content) {
+  return { ok:true, status:200, text:async()=>JSON.stringify({choices:[{message:{content:JSON.stringify(content)}}]}) };
+}
+
+test("GM endpoint rejects non-POST requests", async () => {
+  const res=responseMock();await handler({method:"GET",headers:{}},res);
+  assert.equal(res.statusCode,405);
+});
+
+test("character review enforces the 200-character background minimum", async () => {
+  const res=responseMock();await handler({method:"POST",headers:{"x-forwarded-for":"test-short"},body:{mode:"review",profile:{background:"짧은 설정"}}},res);
+  assert.equal(res.statusCode,400);
+  assert.equal(JSON.parse(res.body).error,"BACKGROUND_TOO_SHORT");
+});
+
+test("character review requires three passing reviewers", async () => {
+  const previous=global.fetch;
+  global.fetch=async()=>completion({overall:"pass",reviews:[
+    {reviewer:"세계관 심사관",verdict:"통과",reason:"일치",suggestion:"없음"},
+    {reviewer:"밸런스 심사관",verdict:"통과",reason:"적절",suggestion:"없음"},
+    {reviewer:"플레이 가능성 심사관",verdict:"통과",reason:"가능",suggestion:"없음"}
+  ]});
+  const res=responseMock();await handler({method:"POST",headers:{"x-forwarded-for":"test-review"},body:{mode:"review",profile:{background:"배경 설명 ".repeat(30)}}},res);
+  global.fetch=previous;
+  assert.equal(res.statusCode,200);
+  assert.equal(JSON.parse(res.body).overall,"pass");
+  assert.equal(JSON.parse(res.body).reviews.length,3);
+});
+
+test("quest generation only accepts a target from the supplied allowlist", async () => {
+  const previous=global.fetch;
+  global.fetch=async()=>completion({title:"임의 의뢰",description:"허용되지 않은 대상",targetMonsterId:"not-allowed",targetCount:1});
+  const res=responseMock();await handler({method:"POST",headers:{"x-forwarded-for":"test-quest"},body:{mode:"quest",allowedTargets:[{id:"weak-spider",name:"약골 거미"}]}},res);
+  global.fetch=previous;
+  assert.equal(res.statusCode,502);
+  assert.equal(JSON.parse(res.body).error,"INVALID_QUEST_TARGET");
+});
