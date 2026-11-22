@@ -148,3 +148,78 @@ window.AITRPG_DATA.npcs = [
 ];
 
 window.AITRPG_DATA.statPrototypeNote = "바텀웨이 마을 NPC 공통 능력치: HP 300, 근력 50, 지능 50, 방어력 50, 속도 80.";
+
+
+// Canonical AI-GM reference. This is structured game knowledge, not model fine-tuning.
+window.AITRPG_DATA.gmKnowledge = {
+  world: {
+    year: 1876,
+    startingVillage: "바텀웨이마을",
+    startingRegion: "인간 제국 남부",
+    mineral: "타르아니움",
+    history: [
+      "타르아니움 자원 전쟁은 1116년 전에 시작되었다.",
+      "인간과 엘프의 마법 전쟁은 500년 전에 일어났다.",
+      "수인 전쟁은 310년 전에 벰벨트론이 시작했다.",
+      "모험가 길드는 약 1856년에 설립되었다.",
+      "벰벨트론은 대륙 남서쪽 끝에 있으며 지금까지 12차례 원정이 실패했다.",
+      "타르아니움은 마법과 SP 보충, 골렘 제작에 사용된다."
+    ],
+    geography: {
+      northeast: "인간 제국",
+      northwest: "설원 엘프 지역",
+      southeast: "오크 사막 부족",
+      southwest: ["드워프 이르골", "드워프 그라간티움"],
+      center: "풍요의 인어섬",
+      farSouthwest: "벰벨트론"
+    },
+    raceRelations: {
+      humans: {friendly:["이르골"],limited:["오크"],hostile:["인어"]},
+      elves: {friendly:["이르골","인어"],hostile:["인간","오크"]},
+      orcs: {friendly:["이르골","그라간티움"],distant:["인간","엘프","인어"]},
+      mermaids: {friendly:["엘프","이르골"],hostile:["인간","오크","그라간티움"]},
+      irgol: {friendly:["인간","엘프","오크","인어"]},
+      gragantium: {cooperative:["오크"],hostile:["인간","엘프","인어"]}
+    }
+  },
+  village: {
+    facilities: ["상점","도서관","성소","훈련장","길드"],
+    npcCommonStats: {hp:300,strength:50,intelligence:50,defense:50,speed:80},
+    shop: {owner:"덴비 월 호웨이",age:57,appleBuyPrice:5},
+    library: {owner:"하멜",guildMemberEntry:0,nonMemberEntry:20,borrowingAllowed:false},
+    sanctuary: {deities:["태양신","풍요신","혼돈신","축복신"],revivalCost:200,owners:[],npcs:["빌리","폰타"]},
+    training: {trainer:"게일",entryFee:20,sessionTurns:20,gaugeMax:8},
+    guild: {npcs:["벨","욘","처콜"],registrationFee:0,monsterQuestLp:10,monsterKillLp:5}
+  },
+  progression: {
+    initialGold:200,
+    initialSkills:["이판사판"],
+    maxLevel:10000,
+    firstLevelLp:50,
+    lpIncreasePerLevel:50,
+    questSuccessLp:10,
+    monsterDefeatLp:5,
+    statPointPerLevel:1
+  },
+  combat: {
+    hitThreshold:55,
+    defenseThreshold:"50 + defense / 4",
+    successfulDefenseDamageMultiplier:0.25,
+    criticalThreshold:20,
+    criticalDamageMultiplier:1.25,
+    dodgeSystem:false,
+    firstTurn:"higher Speed acts first",
+    spRecoveryPerTurn:1,
+    monsterEncounter:{forestSteps:50,roll:"1d100",encounterAtOrBelow:40},
+    weaponDurability:{hitPpLoss:1,missPpLoss:0,breakAtPp:0}
+  },
+  gmDirectives: [
+    "확정된 세계관·종족 관계·지역·시설·NPC 설정을 변경하지 않는다.",
+    "새로운 종족, 마을 시설, 마물 종류, 역사적 사건을 임의로 정식 설정에 추가하지 않는다.",
+    "중요 의뢰와 기초 의뢰는 사용자가 정하며 AI GM은 이를 생성하거나 수정하지 않는다.",
+    "그 밖의 일반 의뢰만 자동 생성한다.",
+    "전투 주사위, 명중, 방어, 피해, LP, 골드, 아이템 내구도는 코드 결과를 따른다. AI가 결과를 임의로 결정하지 않는다.",
+    "기록되지 않은 수치나 보상은 확정된 규칙처럼 말하지 않는다.",
+    "플레이어의 선택, 이동, 전투, 거래, 의뢰, NPC 관계 변화는 월드 기록에 반영한다."
+  ]
+};
