@@ -1,4 +1,4 @@
-const MODEL = "openai/gpt-5.6-luna";
+const MODEL = "openai/gpt-5.4";
 const rateBuckets=new Map();
 function isRateLimited(req){
   const ip=String(req.headers&&req.headers["x-forwarded-for"]||"unknown").split(",")[0].trim();
@@ -26,7 +26,7 @@ async function ask(messages,maxTokens=700){
   const response=await fetch("https://ai-gateway.vercel.sh/v1/chat/completions",{
     method:"POST",
     headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
-    body:JSON.stringify({model:MODEL,messages,max_tokens:maxTokens,temperature:0.6})
+    body:JSON.stringify({model:MODEL,messages,max_tokens:maxTokens})
   });
   const raw=await response.text();let data;try{data=JSON.parse(raw);}catch{throw new Error("AI_GATEWAY_BAD_RESPONSE");}
   if(!response.ok)throw new Error("AI_GATEWAY_"+response.status);
@@ -39,7 +39,7 @@ module.exports=async function handler(req,res){
   let body=req.body;
   if(typeof body==="string"){try{body=JSON.parse(body);}catch{return send(res,400,{error:"INVALID_JSON"});}}
   if(!body||typeof body!=="object")return send(res,400,{error:"INVALID_BODY"});
-  const mode=body.mode==="review"?"review":"chat";
+  const mode=["review","job","quest"].includes(body.mode)?body.mode:"chat";
   try{
     if(mode==="review"){
       const profile=body.profile||{};
@@ -53,6 +53,17 @@ module.exports=async function handler(req,res){
       if(reviews.length!==3)return send(res,502,{error:"INCOMPLETE_REVIEW"});
       const allPassed=reviews.every(x=>String(x.verdict||"").includes("통과"))&&result.overall==="pass";
       return send(res,200,{reviews,overall:allPassed?"pass":"revise"});
+    }
+    if(mode==="job"){
+      const character=body.character||{};
+      const allowed=Array.isArray(body.allowedJobs)?body.allowedJobs.filter(x=>x&&typeof x.id==="string"&&typeof x.name==="string").slice(0,5):[];
+      if(!allowed.length)return send(res,400,{error:"NO_ALLOWED_JOBS"});
+      const prompt="너는 바텀웨이마을 모험가 길드의 직업 담당 NPC 욘이다. 아래 캐릭터의 능력치, 종족, 외모, 성격, 배경을 검토해 가장 적합한 기본 직업 하나를 네 판단으로 배정한다. 플레이어에게 선택지를 보여주거나 되묻지 않는다. 반드시 허용된 직업 중 하나만 고른다. 판단은 캐릭터의 강점과 성향을 근거로 하고, 설정만으로 새로운 직업을 만들지 않는다. JSON 객체 {jobId,reason}만 반환한다. reason은 NPC 욘이 플레이어에게 직접 말하는 자연스러운 한국어 2~3문장이다. 허용 직업: "+JSON.stringify(allowed)+" 세계 규칙: "+WORLD_RULES.join(" ");
+      const text=await ask([{role:"system",content:prompt},{role:"user",content:JSON.stringify(character)}],300);
+      let assignment;try{assignment=JSON.parse(text.replace(/^\\s*```json\\s*|\\s*```\\s*$/g,""));}catch{return send(res,502,{error:"INVALID_JOB_FORMAT"});}
+      if(!allowed.some(x=>x.id===assignment.jobId)||!assignment.reason)return send(res,502,{error:"INVALID_JOB_ASSIGNMENT"});
+      const job=allowed.find(x=>x.id===assignment.jobId);
+      return send(res,200,{jobId:job.id,jobName:job.name,reason:String(assignment.reason).slice(0,500)});
     }
     if(body.mode==="quest"){
       const allowed=Array.isArray(body.allowedTargets)?body.allowedTargets.filter(x=>x&&typeof x.id==="string"&&typeof x.name==="string").slice(0,8):[];
