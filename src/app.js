@@ -262,6 +262,9 @@
   }
   function setRegion(region) {
     state.region = region;
+    const useGeneratedTownArt=region==="village";
+    $("sceneBgImage").style.display=useGeneratedTownArt?"block":"none";
+    $("sceneBg").style.display=useGeneratedTownArt?"none":"block";
     if (region === "village") {
       state.position = "바텀웨이마을 광장"; state.worldX=800; state.worldY=510;
       $("sceneArtUse").setAttribute("href", "./assets/scene-kit.svg#town-map");
