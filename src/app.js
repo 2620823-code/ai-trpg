@@ -373,14 +373,14 @@
     if(x.variantOf){const base=DATA.monsters.find(m=>m.id===x.variantOf);return base?{...base,...x,stats:{...base.stats}}:x;}return x;
   }
   function weaponBonus(){const w=state.character?.equipment?.weapon;return w?Number(w.bonus||0):0;}
-  function skillCost(name,c){const d=SKILL_BOOK[name];if(!d)return Infinity;const a=c.skillAwakenings&&c.skillAwakenings[name];return Math.max(1,d.sp-((a&&a.spReduction)||0));}
+  function skillCost(name,c){const d=SKILL_BOOK[name];if(!d)return Infinity;if(d.sp===0)return 0;const a=c.skillAwakenings&&c.skillAwakenings[name];return Math.max(1,d.sp-((a&&a.spReduction)||0));}
   function playerHitThreshold(tier){return tier==="ultimate"?44:tier==="powerful"?49:55;}
   function showSkillList(){
     const c=state.character;
     const rows=(c.equippedSkills||[]).map(name=>{
       const d=SKILL_BOOK[name];if(!d)return "<div class='inventory-item'><b>"+escape(name)+"</b><small>효과 규칙 복원 필요</small></div>";
-      const cost=skillCost(name,c),allowed=d.job==="shared"||d.job===c.jobId;
-      return "<div class='inventory-item'><b>"+escape(name)+"</b><small>SP "+cost+(allowed?"":" · 현재 직업 사용 불가")+"</small><button class='primary-modal' data-use-skill='"+escape(name)+"' "+(!allowed||c.sp+1<cost?"disabled":"")+">사용</button></div>";
+      const cost=skillCost(name,c),allowed=d.job==="shared"||d.job===c.jobId,usable=d.kind!=="unknown";
+      return "<div class='inventory-item'><b>"+escape(name)+"</b><small>SP "+cost+(allowed?"":" · 현재 직업 사용 불가")+(usable?"":" · 효과 미확정")+"</small><button class='primary-modal' data-use-skill='"+escape(name)+"' "+(!allowed||!usable||c.sp+1<cost?"disabled":"")+">사용</button></div>";
     }).join("");
     openModal("전투 스킬",rows+"<button class='primary-modal' id='battleBack'>전투로 돌아가기</button>");
   }
@@ -590,7 +590,7 @@
     if(f.id==="sanctuary"&&state.character.dead)html+="<button class='primary-modal' id='revivePlayer'>부활 (200G)</button>";
     if(f.items) html+="<h3>판매 목록</h3><div class='shop-list'>"+f.items.map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-buy='"+i+"'>구매</button></div>").join("")+"</div><p>큰사과는 개당 5G에 판매할 수 있습니다.</p><button class='primary-modal' id='sellApples'>큰사과 판매</button>";
     if(f.rules)html+="<h3>이용 규칙</h3><ul>"+f.rules.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
-    if(f.books)html+="<h3>소장 도서</h3><ul>"+f.books.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
+    if(f.books)html+="<h3>소장 도서</h3><div class='shop-list'>"+f.books.map(x=>"<div><b>"+escape(x)+"</b><button class='primary-modal' data-library-book='"+escape(x)+"'>열람</button></div>").join("")+"</div>";
     if(f.deities)html+="<h3>신앙 대상</h3><p>"+f.deities.map(escape).join(" · ")+"</p>";
     if(f.id==="library")html+="<h3>도서관 의뢰</h3><p>책의 미믹 3마리 처치 · 보상 20G + 스킬북 1개</p><button class='primary-modal' id='libraryQuest'>의뢰 확인</button>";
     if(f.id==="guild"){
@@ -624,6 +624,14 @@
     const i=c.equippedSkills.indexOf(oldSkill);if(i<0)return;
     const next=c.pendingEquipSkill;c.equippedSkills[i]=next;delete c.pendingEquipSkill;
     record("스킬 장착",oldSkill+" → "+next);save();renderCharacter();openModal("장착 완료","<p>"+escape(next)+"을(를) 장착했습니다.</p>");
+  }
+  function readLibraryBook(title){
+    const c=state.character;if(!c)return;
+    const ids={"중급 마법서":"library:중급 마법서","검술서":"library:검술서","기술서":"library:기술서","훈련서":"library:훈련서","암흑서":"library:암흑서"};
+    if(!ids[title]){
+      openModal(title,"<p>이 책은 정보 열람용입니다. 상세한 정보 내용과 열람 지속시간은 별도 규칙 데이터가 필요합니다.</p>");return;
+    }
+    readSkillBook({id:ids[title],name:title});
   }
   function readSkillBook(item){
     const c=state.character;if(!c)return;
@@ -804,6 +812,7 @@
     if(t.dataset.acceptQuest)acceptGeneralQuest(t.dataset.acceptQuest);
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
+    if(t.dataset.libraryBook)readLibraryBook(t.dataset.libraryBook);
     if(t.id==="libraryQuest"){const q=state.quests["book-mimic-hunt"];openModal("도서관 의뢰","<p>책의 미믹 3마리 처치 · "+(q.defeated||0)+"/3</p><p>보상: 20G + 스킬북 1개 + 10 LP</p>");}
     if(t.id==="joinGuild"){state.character.guild=state.character.guild||{};state.character.guild.joined=true;state.guildJoined=true;save();record("길드 가입","무료로 길드에 가입했다.");facilityContent("guild");}
     if(t.id==="revivePlayer"){if(state.gold<200){notify("부활 비용 200G가 부족합니다.");return;}state.gold-=200;state.character.dead=false;state.character.hp=state.character.maxHp;save();renderCharacter();record("부활","성소에서 200G를 지불하고 부활했다.");facilityContent("sanctuary");}
