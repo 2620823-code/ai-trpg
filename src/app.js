@@ -127,10 +127,10 @@
       "<div><span>SP</span><b>"+c.sp+" / "+c.maxSp+"</b></div><div class='meter sp'><i style='width:"+(100*c.sp/c.maxSp)+"%'></i></div>"+
       "<div class='stat-grid'><span>근력 <b>"+c.strength+"</b></span><span>지능 <b>"+c.intelligence+"</b></span><span>방어력 <b>"+c.defense+"</b></span><span>속도 <b>"+c.speed+"</b></span><span>행운 <b>"+c.luck+"</b></span><span>정교함 <b>"+c.precision+"</b></span></div><p class='muted'>보유 골드 "+state.gold+"G</p>" : "<p class='muted'>캐릭터를 생성하면 능력치가 표시됩니다.</p>";
   }
-  let characterReviewPassed=false,characterReviewBusy=false;
+  let characterReviewPassed=false,characterReviewBusy=false,characterReviewRejectCount=0,characterReviewHistory=[],recommendedStories=[];
   function characterForm() {
     const races = (DATA.races || []).map((r)=>"<option value='"+escape(r.id)+"'>"+escape(r.name)+"</option>").join("");
-    characterReviewPassed=false;
+    characterReviewPassed=false;characterReviewRejectCount=0;characterReviewHistory=[];recommendedStories=[];
     openModal("새 캐릭터 생성", "<p>종족을 선택하고 외모·성격·배경을 작성하세요. 직업은 캐릭터 생성 후 길드에서 직업 담당 NPC 욘과 대화해 선택합니다.</p>"+
       "<label>이름</label><input id='charName' maxlength='20' value='이름 없는 모험가'><label>종족</label><select id='charRace'>"+races+"</select>"+
       "<label>외모</label><textarea id='charAppearance' rows='2' maxlength='500' placeholder='캐릭터의 외모를 작성하세요.'></textarea><label>성격</label><textarea id='charPersonality' rows='2' maxlength='500' placeholder='캐릭터의 성격과 행동 방식을 작성하세요.'></textarea><label>배경 이야기 (200자 이상)</label><textarea id='charBackground' rows='6' maxlength='3000' minlength='200' placeholder='바텀웨이마을에 도착한 이유와 과거를 포함해 작성하세요.'></textarea>"+
@@ -147,13 +147,42 @@
       const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"review",profile})});
       const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"심사 요청 실패");
       characterReviewPassed=result.overall==="pass";
-      $("reviewResults").innerHTML=(result.reviews||[]).map(x=>"<div class='inventory-item'><b>"+escape(x.reviewer||"심사관")+" · "+escape(x.verdict||"검토")+"</b><small>"+escape(x.reason||"")+"</small><p>"+escape(x.suggestion||"")+"</p></div>").join("");
-      $("rollPreview").innerHTML=characterReviewPassed?"<p>세 심사관의 검토를 통과했습니다. 능력치 주사위를 굴릴 수 있습니다.</p>":"<p>수정 제안이 있습니다. 설정을 수정한 뒤 다시 검토받으세요.</p>";
+      $("reviewResults").innerHTML=(result.reviews||[]).map(x=>"<div class='inventory-item'><b>"+escape(x.reviewer||"심사관")+" · "+escape(x.verdict||"검토")+"</b><small><b>문제점:</b> "+escape(x.reason||"")+"</small><p><b>수정 의견:</b> "+escape(x.suggestion||"")+"</p></div>").join("");
+      $("rollPreview").innerHTML=characterReviewPassed?"<p>세 심사관의 검토를 통과했습니다. 능력치 주사위를 굴릴 수 있습니다.</p>":"<p>수정 제안이 있습니다. 거절 "+(characterReviewRejectCount+1)+"회차입니다. 심사관별 문제점과 수정 의견을 확인하세요.</p>";
+      if(!characterReviewPassed){
+        characterReviewRejectCount++;
+        characterReviewHistory.push((result.reviews||[]).map(x=>String(x.reviewer||"심사관")+": "+String(x.reason||"")+" / "+String(x.suggestion||"")).join("\n").slice(0,500));
+        $("storyOptions").innerHTML=characterReviewRejectCount>=3?"<p class='muted'>설정이 "+characterReviewRejectCount+"회 거절되었습니다. 직접 수정하거나 AI GM에게 새로운 배경 이야기 3개를 추천받을 수 있습니다.</p><button class='primary-modal' id='generateStoryOptions'>AI GM에게 새 설정 3개 추천받기</button><div id='storyOptionList'></div>":"<p class='muted'>현재 "+characterReviewRejectCount+"회 거절되었습니다. 3회 이상 거절되면 AI GM이 새로운 설정 3개를 제안합니다.</p>";
+      }else{
+        $("storyOptions").innerHTML="<p class='muted'>심사 통과 · 배경 이야기 설정이 승인되었습니다.</p>";
+      }
       $("rollChar").disabled=!characterReviewPassed;$("saveChar").disabled=true;pendingCharacter=null;
     }catch(error){
       characterReviewPassed=false;$("rollChar").disabled=true;
       $("reviewResults").innerHTML="<p class='muted'>AI 심사 연결 실패: "+escape(error.message)+"</p>";
     }finally{characterReviewBusy=false;button.disabled=false;button.textContent="AI 심사관 3명에게 설정 검토 요청";}
+  }
+  async function generateStoryOptions(){
+    const button=$("generateStoryOptions");if(!button||button.disabled)return;
+    const feedback=$("charReviewFeedback").value.trim();
+    button.disabled=true;button.textContent="AI GM이 설정 3개를 작성 중...";
+    try{
+      const profile={race:DATA.races.find(x=>x.id===$("charRace").value)?.name,appearance:$("charAppearance").value,personality:$("charPersonality").value,background:$("charBackground").value};
+      const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"storyOptions",profile,feedback,previousRejections:characterReviewHistory})});
+      const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"설정 추천 요청 실패");
+      if(!Array.isArray(result.options)||result.options.length!==3||result.options.some(x=>String(x.background||"").trim().length<200))throw new Error("200자 이상인 설정 3개를 받지 못했습니다.");
+      recommendedStories=result.options;
+      $("storyOptionList").innerHTML="<p>아래 설정은 모두 200자 이상입니다. 하나를 선택하면 배경 칸에 적용되고 심사를 다시 요청할 수 있습니다.</p>"+recommendedStories.map((x,i)=>"<article class='inventory-item story-option'><b>"+(i+1)+". "+escape(x.title)+"</b><small>"+escape(x.hook)+"</small><p>"+escape(x.background)+"</p><small>"+x.background.length+"자</small><button class='primary-modal' data-story-option='"+i+"'>이 설정 선택하기</button></article>").join("");
+    }catch(error){
+      $("storyOptionList").innerHTML="<p class='muted'>추천 생성 실패: "+escape(error.message)+"</p>";
+    }finally{button.disabled=false;button.textContent="AI GM에게 새 설정 3개 추천받기";}
+  }
+  function chooseStoryOption(index){
+    const option=recommendedStories[index];if(!option)return;
+    $("charBackground").value=option.background;
+    characterReviewPassed=false;pendingCharacter=null;$("rollChar").disabled=true;$("saveChar").disabled=true;
+    $("storyOptions").insertAdjacentHTML("afterbegin","<p>‘"+escape(option.title)+"’ 설정을 적용했습니다. 심사관에게 다시 검토를 요청하세요.</p>");
+    $("reviewCharacter").scrollIntoView({behavior:"smooth",block:"center"});
   }
   function rollCharacter() {
     if(!characterReviewPassed){notify("먼저 AI 심사를 통과해야 합니다.");return;}
@@ -890,6 +919,8 @@
   modalContent.addEventListener("click",(e)=>{
     const t=e.target;
     if(t.id==="reviewCharacter")reviewCharacter();
+    if(t.id==="generateStoryOptions")generateStoryOptions();
+    if(t.dataset.storyOption!==undefined)chooseStoryOption(Number(t.dataset.storyOption));
     if(t.id==="rollChar")rollCharacter();
     if(t.id==="saveChar")saveCharacter();
     if(t.id==="leaveEncounter")leaveEncounter();
