@@ -13,24 +13,25 @@
     worldX: 800, worldY: 510, generalQuests: [], activeGeneralQuest: null
   };
   function readState() {
-    try {
-      for (const key of [KEY, KEY+"-backup", ...OLD]) {
-        const raw = localStorage.getItem(key);
-        if (!raw) continue;
-        const saved = JSON.parse(raw);
-        if (saved && typeof saved === "object") return {
-          ...defaults, ...saved,
-          inventory: Array.isArray(saved.inventory) ? saved.inventory : [],
-          actions: Array.isArray(saved.actions) ? saved.actions : [],
-          groundItems: Array.isArray(saved.groundItems) ? saved.groundItems : [],
-          npcStats: saved.npcStats || {},
-          quests: { ...defaults.quests, ...(saved.quests || {}) },
-          worldX: Number.isFinite(saved.worldX) ? saved.worldX : 800,
-          worldY: Number.isFinite(saved.worldY) ? saved.worldY : 510
+    for (const key of [KEY, KEY+"-backup", ...OLD]) {
+      try {
+        const raw=localStorage.getItem(key);if(!raw)continue;
+        const saved=JSON.parse(raw);if(!saved||typeof saved!=="object")continue;
+        return {
+          ...defaults,...saved,
+          inventory:Array.isArray(saved.inventory)?saved.inventory:[],
+          actions:Array.isArray(saved.actions)?saved.actions:[],
+          groundItems:Array.isArray(saved.groundItems)?saved.groundItems:[],
+          npcStats:saved.npcStats||{},
+          quests:{...defaults.quests,...(saved.quests||{})},
+          generalQuests:Array.isArray(saved.generalQuests)?saved.generalQuests:[],
+          activeGeneralQuest:saved.activeGeneralQuest||null,
+          worldX:Number.isFinite(saved.worldX)?saved.worldX:800,
+          worldY:Number.isFinite(saved.worldY)?saved.worldY:510
         };
-      }
-    } catch (error) { console.warn("저장 기록을 읽지 못했습니다.", error); }
-    return { ...defaults };
+      } catch(error) { console.warn("저장 키를 건너뜁니다: "+key,error); }
+    }
+    return {...defaults};
   }
   const state = readState();
   if(state.character){
