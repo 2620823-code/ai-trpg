@@ -159,6 +159,7 @@
   function rollCharacter() {
     if(!characterReviewPassed){notify("먼저 AI 심사를 통과해야 합니다.");return;}
     const name = $("charName").value.trim() || "이름 없는 모험가";
+    if(!$("charAppearance").value.trim()||!$("charPersonality").value.trim()){notify("외모와 성격을 작성해야 합니다.");return;}
     const raceId = $("charRace").value, jobId = $("charJob").value;
     const stats = applyRace(baseStats(), raceId);
     const race = DATA.races.find((r)=>r.id===raceId), job = DATA.jobs.find((j)=>j.id===jobId);
@@ -761,7 +762,7 @@
     const labels={strength:"근력",intelligence:"지능",defense:"방어력",luck:"행운",speed:"속도",precision:"정교함",sp:"SP"};
     const caps={strength:150,intelligence:150,defense:100,luck:100,speed:200,precision:195,sp:150};
     const rows=Object.keys(labels).map(k=>"<div class='inventory-item'><b>"+labels[k]+" "+c[k]+"/"+caps[k]+"</b><button class='primary-modal' data-stat-point='"+k+"' "+(c.statPoints>0&&c[k]<caps[k]?"":"disabled")+">+1</button></div>").join("");
-    openModal("캐릭터 정보","<p>"+escape(c.name)+" · "+escape(c.raceName)+" · "+escape(c.jobName)+" · Lv."+c.level+"</p>"+statsHtml(c)+"<p>LP "+(c.lp||0)+" / "+(c.nextLp||requiredLp(c.level))+" · 능력치 포인트 "+(c.statPoints||0)+"</p><h3>보유 스킬</h3><p>"+(c.skills||[]).map(escape).join(" · ")+"</p><h3>장착 스킬 ("+(c.equippedSkills||[]).length+"/4)</h3><p>"+(c.equippedSkills||[]).map(escape).join(" · ")+"</p><h3>능력치 분배</h3>"+rows);
+    openModal("캐릭터 정보","<p>"+escape(c.name)+" · "+escape(c.raceName)+" · "+escape(c.jobName)+" · Lv."+c.level+"</p><p>외모: "+escape(c.appearance||"미기록")+"</p><p>성격: "+escape(c.personality||"미기록")+"</p><p>배경: "+escape(c.background||"미기록")+"</p>"+statsHtml(c)+"<p>LP "+(c.lp||0)+" / "+(c.nextLp||requiredLp(c.level))+" · 능력치 포인트 "+(c.statPoints||0)+"</p><h3>보유 스킬</h3><p>"+(c.skills||[]).map(escape).join(" · ")+"</p><h3>장착 스킬 ("+(c.equippedSkills||[]).length+"/4)</h3><p>"+(c.equippedSkills||[]).map(escape).join(" · ")+"</p><h3>능력치 분배</h3>"+rows);
   }
   function sellGuildLoot(){
     const prices={"weak-goblin":[5,10,20],"weak-spider":[5,10,20],"goblin":[10,20,40],"treasure-mimic":[20,40,100],"book-mimic":[20,40,100]};
@@ -836,7 +837,7 @@
     const watcher=window.setInterval(()=>{if(Math.hypot(targetX-state.worldX,targetY-state.worldY)<48||state.activeEncounter){stopMoving();clearInterval(watcher);}},80);
   });
   $("closeModal").addEventListener("click",closeModal);modal.addEventListener("click",(e)=>{if(e.target===modal)closeModal();});
-  modalContent.addEventListener("input",(e)=>{if(["charName","charRace","charJob","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
+  modalContent.addEventListener("input",(e)=>{if(["charRace","charJob","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
   modalContent.addEventListener("click",(e)=>{
     const t=e.target;
     if(t.id==="reviewCharacter")reviewCharacter();
