@@ -183,6 +183,7 @@
     characterReviewPassed=false;pendingCharacter=null;$("rollChar").disabled=true;$("saveChar").disabled=true;
     $("storyOptions").insertAdjacentHTML("afterbegin","<p>‘"+escape(option.title)+"’ 설정을 적용했습니다. 심사관에게 다시 검토를 요청하세요.</p>");
     $("reviewCharacter").scrollIntoView({behavior:"smooth",block:"center"});
+    reviewCharacter();
   }
   function rollCharacter() {
     if(!characterReviewPassed){notify("먼저 AI 심사를 통과해야 합니다.");return;}
