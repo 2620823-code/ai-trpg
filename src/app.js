@@ -534,7 +534,11 @@
     if(f.books)html+="<h3>소장 도서</h3><ul>"+f.books.map(x=>"<li>"+escape(x)+"</li>").join("")+"</ul>";
     if(f.deities)html+="<h3>신앙 대상</h3><p>"+f.deities.map(escape).join(" · ")+"</p>";
     if(f.id==="library")html+="<h3>도서관 의뢰</h3><p>책의 미믹 3마리 처치 · 보상 20G + 스킬북 1개</p><button class='primary-modal' id='libraryQuest'>의뢰 확인</button>";
-    if(f.id==="guild")html+="<h3>길드 게시판</h3><p>중요 의뢰와 기초 의뢰는 사용자 설정을 따릅니다.</p>";
+    if(f.id==="guild"){
+      const shop=facilities.find(x=>x.id==="shop");
+      html+="<h3>길드 상점</h3><p>마을 상점과 동일한 판매 가격을 적용합니다.</p><div class='shop-list'>"+(shop.items||[]).map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-guild-buy='"+i+"'>구매</button></div>").join("")+"</div>";
+      html+="<h3>물품 매입</h3><p>큰사과와 마물 유해를 매입합니다.</p><button class='primary-modal' id='sellGuildLoot'>매입 가능한 물품 판매</button><h3>길드 게시판</h3><p>중요 의뢰와 기초 의뢰는 사용자 설정을 따릅니다.</p>";
+    }
     openModal(f.name+" · 시설 이용",html);
   }
   function showInventory() {
@@ -558,6 +562,17 @@
       c.hp=Math.min(c.maxHp,c.hp+heal);state.inventory.splice(index,1);record("아이템 사용",item.name+" · HP "+heal+" 회복");
     }else{openModal(item.name,"<p>"+escape(item.effect||"서적 또는 재료 아이템")+"</p>");return;}
     save();renderCharacter();showInventory();
+  }
+  function sellGuildLoot(){
+    const prices={"weak-goblin":[5,10,20],"weak-spider":[5,10,20],"goblin":[10,20,40],"treasure-mimic":[20,40,100],"book-mimic":[20,40,100]};
+    let total=0,sold=[];
+    state.inventory=state.inventory.filter(item=>{
+      if(item.id==="big-apple"){total+=5;sold.push(item.name+" 5G");return false;}
+      if(item.id&&item.id.startsWith("loot-")){const parts=item.id.split("-"),tier=Number(parts.pop()),monster=parts.slice(1).join("-"),p=prices[monster];if(p&&Number.isInteger(tier)&&p[tier]!==undefined){total+=p[tier];sold.push(item.name+" "+p[tier]+"G");return false;}}
+      return true;
+    });
+    if(!sold.length){openModal("길드 매입","<p>매입 가능한 물품이 없습니다.</p>");return;}
+    state.gold+=total;save();renderCharacter();record("길드 매각",sold.join(", ")+" · 총 "+total+"G");openModal("길드 매입 완료","<p>"+sold.map(escape).join("<br>")+"</p><p>합계 "+total+"G를 받았습니다.</p>");
   }
   function sellApples() {
     const count=state.inventory.filter(i=>i.id==="big-apple").length;
@@ -629,6 +644,7 @@
     if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
     if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
     if(t.id==="sellApples")sellApples();
+    if(t.id==="sellGuildLoot")sellGuildLoot();
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
     if(t.id==="libraryQuest")openModal("도서관 의뢰","<p>책의 미믹 3마리 처치. 보상은 20G와 스킬북 1개입니다.</p>");
@@ -654,6 +670,7 @@
         save();renderCharacter();record("상점 구매",item.name+" · "+item.price+"G");facilityContent("shop");
       }
     }
+    if(t.dataset.guildBuy!==undefined){const shop=facilities.find(x=>x.id==="shop"),item=shop&&shop.items[Number(t.dataset.guildBuy)];if(item){t.dataset.buy=String(t.dataset.guildBuy);const f=facilities.find(x=>x.id==="shop");if(state.gold<item.price)notify("골드가 부족합니다.");else if(state.inventory.length>=30)notify("인벤토리가 가득 찼습니다.");else{const bonusMatch=item.effect.match(/(?:보정치|보정)\s*\+\s*(\d+)/),ppMatch=item.effect.match(/PP\s*(\d+)/),weapon=item.type==="무기";const obj={id:"shop-"+Number(t.dataset.guildBuy),name:item.name,type:weapon?"무기":item.type==="회복"?"소모품":item.type,effect:item.effect,bonus:bonusMatch?Number(bonusMatch[1]):0,pp:ppMatch?Number(ppMatch[1]):weapon?10:0,maxPp:ppMatch?Number(ppMatch[1]):weapon?10:0,restriction:item.restriction};obj.instanceId=Date.now()+"-"+Math.random().toString(36).slice(2);state.gold-=item.price;state.inventory.push(obj);save();renderCharacter();record("길드 상점 구매",item.name+" · "+item.price+"G");facilityContent("guild");}}}
     if(t.dataset.useItem)useInventoryItem(t.dataset.useItem);
   });
   document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
