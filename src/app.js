@@ -10,7 +10,7 @@
     inventory: [], npcStats: {}, forestSteps: 0, nextForestAppleStep: null,
     librarySteps: 0, groundItems: [], activeEncounter: null,
     quests: { "book-mimic-hunt": { status: "available", defeated: 0, rewarded: false } },
-    worldX: 800, worldY: 510
+    worldX: 800, worldY: 510, generalQuests: [], activeGeneralQuest: null
   };
   function readState() {
     try {
@@ -380,6 +380,8 @@
       const q=state.quests["book-mimic-hunt"];q.defeated=(q.defeated||0)+1;
       if(q.defeated>=3&&!q.rewarded){q.rewarded=true;state.gold+=20;addItem({id:"skill-book",name:"스킬북",type:"서적"});grantLp(10,"도서관 의뢰 성공");record("의뢰 완료","책의 미믹 3마리 처치 · 20G, 스킬북, 10 LP 획득");}
     }
+    const active=state.activeGeneralQuest;
+    if(active&&active.status==="accepted"&&active.targetMonsterId===monster.id){active.defeated=(active.defeated||0)+1;if(active.defeated>=active.targetCount){active.status="completed";state.activeGeneralQuest=null;grantLp(10,"일반 의뢰 성공");record("일반 의뢰 완료",active.title+" · 10 LP 획득");}}
     state.activeEncounter=null;grantLp(5,"마물 "+monster.name+" 처치");
     record("전리품 판정","1d100="+d+" · "+found);save();closeModal();renderCharacter();
     message(monster.name+" 처치","5 LP 획득 · 전리품: "+found);
@@ -513,6 +515,26 @@
       t.active=false;record("훈련 완료","20턴 훈련 완료 · 훈련 게이지 "+t.gauge+"/8");save();renderCharacter();openModal("훈련 완료","<p>훈련 게이지가 1 증가했습니다. 현재 "+t.gauge+"/8</p>");
     }else{record("훈련 진행",skill+" 사용 · 남은 턴 "+t.turns);save();trainingPanel();}
   }
+  function generateGeneralQuest(){
+    const pool=(DATA.encounters&&DATA.encounters.forest&&DATA.encounters.forest.pool||[]).filter(id=>id!=="treasure-mimic");
+    if(!pool.length)return;
+    const target=pool[roll(pool.length)-1],monster=DATA.monsters.find(x=>x.id===target);if(!monster)return;
+    const q={id:"gm-"+Date.now(),title:"마물 토벌: "+monster.name,targetMonsterId:target,targetCount:1,defeated:0,status:"available",rewardLp:10,createdAt:new Date().toISOString()};
+    state.generalQuests=state.generalQuests||[];state.generalQuests.push(q);if(state.generalQuests.length>20)state.generalQuests.shift();save();record("AI GM 일반 의뢰 생성",q.title+" · 성공 보상 10 LP");showGeneralQuests();
+  }
+  function showGeneralQuests(){
+    const qs=state.generalQuests||[];
+    const active=state.activeGeneralQuest;
+    const html=(active?"<h3>진행 중</h3><p>"+escape(active.title)+" · "+active.defeated+"/"+active.targetCount+"</p>":"<p>진행 중인 일반 의뢰가 없습니다.</p>")+
+      "<h3>일반 의뢰</h3>"+(qs.length?qs.slice().reverse().map(q=>"<div class='inventory-item'><b>"+escape(q.title)+"</b><small>"+(q.status==="available"?"보상 10 LP · 수락 가능":q.status==="accepted"?"진행 중":q.status==="completed"?"완료":"종료")+"</small>"+(q.status==="available"&&!active?"<button class='primary-modal' data-accept-quest='"+escape(q.id)+"'>수락</button>":"")+"</div>").join(""):"<p>생성된 일반 의뢰가 없습니다.</p>")+
+      "<button class='primary-modal' id='generateGeneralQuest' "+(active?"disabled":"")+">일반 의뢰 생성</button>";
+    openModal("길드 일반 의뢰",html);
+  }
+  function acceptGeneralQuest(id){
+    if(state.activeGeneralQuest){notify("이미 진행 중인 일반 의뢰가 있습니다.");return;}
+    const q=(state.generalQuests||[]).find(x=>x.id===id&&x.status==="available");if(!q)return;
+    q.status="accepted";q.defeated=0;state.activeGeneralQuest=q;record("일반 의뢰 수락",q.title);save();showGeneralQuests();
+  }
   function facilityContent(id) {
     const f=facilities.find(x=>x.id===id);if(!f)return;
     let html="<p>"+escape(f.summary)+"</p>";
@@ -528,7 +550,7 @@
     if(f.id==="guild"){
       const shop=facilities.find(x=>x.id==="shop");
       html+="<h3>길드 상점</h3><p>마을 상점과 동일한 판매 가격을 적용합니다.</p><div class='shop-list'>"+(shop.items||[]).map((item,i)=>"<div><span><b>"+escape(item.name)+"</b><small>"+escape(item.effect)+"</small></span><b>"+item.price+"G</b><button class='primary-modal' data-guild-buy='"+i+"'>구매</button></div>").join("")+"</div>";
-      html+="<h3>물품 매입</h3><p>큰사과와 마물 유해를 매입합니다.</p><button class='primary-modal' id='sellGuildLoot'>매입 가능한 물품 판매</button><h3>길드 게시판</h3><p>중요 의뢰와 기초 의뢰는 사용자 설정을 따릅니다.</p>";
+      html+="<h3>물품 매입</h3><p>큰사과와 마물 유해를 매입합니다.</p><button class='primary-modal' id='sellGuildLoot'>매입 가능한 물품 판매</button><h3>길드 게시판</h3><p>중요 의뢰와 기초 의뢰는 사용자 설정을 따릅니다.</p><button class='primary-modal' id='showGeneralQuests'>일반 의뢰 게시판</button>";
     }
     openModal(f.name+" · 시설 이용",html);
   }
@@ -665,6 +687,9 @@
     if(t.dataset.statPoint)spendStatPoint(t.dataset.statPoint);
     if(t.id==="sellApples")sellApples();
     if(t.id==="sellGuildLoot")sellGuildLoot();
+    if(t.id==="showGeneralQuests")showGeneralQuests();
+    if(t.id==="generateGeneralQuest")generateGeneralQuest();
+    if(t.dataset.acceptQuest)acceptGeneralQuest(t.dataset.acceptQuest);
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
     if(t.id==="libraryQuest")openModal("도서관 의뢰","<p>책의 미믹 3마리 처치. 보상은 20G와 스킬북 1개입니다.</p>");
