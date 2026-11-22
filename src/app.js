@@ -504,6 +504,21 @@
   }
   function closeDialogue() { dialogueScreen.hidden=true;currentNpc=null;hero.classList.remove("talking"); }
 
+  function trainingPanel(){
+    const t=state.character.training;
+    if(!t||!t.active){openModal("훈련장","<p>진행 중인 훈련이 없습니다.</p>");return;}
+    const buttons=(state.character.skills||[]).map(x=>"<button class='primary-modal' data-train-skill='"+escape(x)+"'>"+escape(x)+" 사용 훈련</button>").join("");
+    openModal("훈련 · 남은 턴 "+t.turns,"<p>보유 스킬을 선택해 한 턴씩 훈련합니다.</p>"+buttons);
+  }
+  function trainingTurn(skill){
+    const c=state.character,t=c.training;if(!t||!t.active||t.turns<=0)return;
+    t.turns--;if(skill!=="이판사판")t.sessionOnlyStruggle=false;
+    if(t.turns===0){t.gauge=Math.min(8,(t.gauge||0)+1);t.sessions=(t.sessions||0)+1;if(t.sessionOnlyStruggle)t.braveDashCount=(t.braveDashCount||0)+1;else t.braveDashCount=0;
+      if(t.gauge>=8){t.gauge=0;addItem({id:"training-result",name:"훈련의 성과",type:"훈련 아이템"});}
+      if(t.braveDashCount>=5&&!(c.skills||[]).includes("브레이브 대쉬")){c.skills.push("브레이브 대쉬");if(c.equippedSkills.length<4)c.equippedSkills.push("브레이브 대쉬");record("스킬 습득","이판사판 훈련 5회 완료 · 브레이브 대쉬 습득");}
+      t.active=false;record("훈련 완료","20턴 훈련 완료 · 훈련 게이지 "+t.gauge+"/8");save();renderCharacter();openModal("훈련 완료","<p>훈련 게이지가 1 증가했습니다. 현재 "+t.gauge+"/8</p>");
+    }else{record("훈련 진행",skill+" 사용 · 남은 턴 "+t.turns);save();trainingPanel();}
+  }
   function facilityContent(id) {
     const f=facilities.find(x=>x.id===id);if(!f)return;
     let html="<p>"+escape(f.summary)+"</p>";
@@ -612,6 +627,12 @@
     if(t.id==="mapVillage"){closeModal();setRegion("village");}
     if(t.id==="mapForest"){closeModal();if(state.character){scheduleApple();setRegion("forest");}else characterForm();}
     if(t.id==="libraryQuest")openModal("도서관 의뢰","<p>책의 미믹 3마리 처치. 보상은 20G와 스킬북 1개입니다.</p>");
+    if(t.id==="joinGuild"){state.character.guild=state.character.guild||{};state.character.guild.joined=true;state.guildJoined=true;save();record("길드 가입","무료로 길드에 가입했다.");facilityContent("guild");}
+    if(t.id==="revivePlayer"){if(state.gold<200){notify("부활 비용 200G가 부족합니다.");return;}state.gold-=200;state.character.dead=false;state.character.hp=Math.max(1,Math.floor(state.character.maxHp/2));save();renderCharacter();record("부활","성소에서 200G를 지불하고 부활했다.");facilityContent("sanctuary");}
+    if(t.id==="startTraining"){if(state.gold<20){notify("훈련장 입장료 20G가 부족합니다.");return;}state.gold-=20;state.character.training=state.character.training||{gauge:0,turns:0,braveDashCount:0};state.character.training.turns=20;state.character.training.active=true;state.character.training.sessionOnlyStruggle=true;save();record("훈련 시작","20G 지불 · 20턴 훈련 시작");trainingPanel();}
+    if(t.dataset.trainSkill)trainingTurn(t.dataset.trainSkill);
+    if(t.id==="battleAttack")battleAction("attack");if(t.id==="battleDefend")battleAction("defend");if(t.id==="battleSkill")battleAction("skill");if(t.id==="battleEscape")battleAction("escape");
+    if(t.id==="battleBack"){const m=currentMonster();if(m)showEncounter(m);}
     if(t.dataset.enter){closeModal();enterFacility(t.dataset.enter);}
     if(t.dataset.talk){closeModal();talkToNpc(t.dataset.talk);}
     if(t.dataset.buy!==undefined){
