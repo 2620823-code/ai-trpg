@@ -384,6 +384,7 @@
   }
   function battleAction(action){
     const monster=currentMonster(),c=state.character,e=state.activeEncounter;if(!monster||!c)return;
+    if(action!=="skill"){const before=c.sp;c.sp=Math.min(c.maxSp||25,(c.sp||0)+1);if(c.sp!==before)record("SP 회복","턴 회복 +1 SP · "+before+" → "+c.sp);}
     if(action==="escape"){
       const ok=c.speed>monster.stats.speed?true:c.speed<monster.stats.speed?false:roll(100)<=50;
       record("도주 판정","플레이어 속도 "+c.speed+" · 마물 속도 "+monster.stats.speed+" · "+(ok?"성공":"실패"));
