@@ -555,9 +555,10 @@
   function trainingTurn(skill){
     const c=state.character,t=c.training;if(!t||!t.active||t.turns<=0)return;
     t.turns--;if(skill!=="이판사판")t.sessionOnlyStruggle=false;
-    if(t.turns===0){t.gauge=Math.min(8,(t.gauge||0)+1);t.sessions=(t.sessions||0)+1;if(t.sessionOnlyStruggle)t.braveDashCount=(t.braveDashCount||0)+1;else t.braveDashCount=0;
-      if(t.gauge>=8){t.gauge=0;addItem({id:"training-result",name:"훈련의 성과",type:"훈련 아이템"});}
-      if(t.braveDashCount>=5&&!(c.skills||[]).includes("브레이브 대쉬")){c.skills.push("브레이브 대쉬");if(c.equippedSkills.length<4)c.equippedSkills.push("브레이브 대쉬");record("스킬 습득","이판사판 훈련 5회 완료 · 브레이브 대쉬 습득");}
+    if(t.turns===0){t.gauge=Math.min(8,(t.gauge||0)+1);t.sessions=(t.sessions||0)+1;if(t.sessionOnlyStruggle)t.braveDashCount=(t.braveDashCount||0)+1;
+      if(t.gauge>=8){if(addItem({id:"training-result",name:"훈련의 성과",type:"훈련 아이템"}))t.gauge=0;}
+      if(t.sessionOnlyStruggle)t.braveDashCount=(t.braveDashCount||0)+1;
+      if(t.braveDashCount>=5&&!(c.skills||[]).includes("브레이브 대쉬")){grantSkill("브레이브 대쉬","이판사판만 사용한 훈련 5회 완료");}
       t.active=false;record("훈련 완료","20턴 훈련 완료 · 훈련 게이지 "+t.gauge+"/8");save();renderCharacter();openModal("훈련 완료","<p>훈련 게이지가 1 증가했습니다. 현재 "+t.gauge+"/8</p>");
     }else{record("훈련 진행",skill+" 사용 · 남은 턴 "+t.turns);save();trainingPanel();}
   }
@@ -707,8 +708,9 @@
   function spendStatPoint(key){
     const c=state.character;if(!c||!(c.statPoints>0))return;
     const caps={strength:150,intelligence:150,defense:100,luck:100,speed:200,precision:195,sp:150};
-    if(!(key in caps)||c[key]>=caps[key]){notify("해당 능력치는 상한에 도달했습니다.");return;}
-    c[key]++;if(key==="sp")c.maxSp=c.sp=Math.min(caps.sp,(c.maxSp||25)+1);
+    const current=key==="sp"?(c.maxSp||25):c[key];
+    if(!(key in caps)||current>=caps[key]){notify("해당 능력치는 상한에 도달했습니다.");return;}
+    if(key==="sp"){c.maxSp=Math.min(caps.sp,(c.maxSp||25)+1);c.sp=Math.min(c.sp,c.maxSp);}else c[key]++;
     c.statPoints--;record("능력치 성장",key+" +1 · 남은 포인트 "+c.statPoints);save();renderCharacter();openCharacterPanel();
   }
   function openCharacterPanel(){
