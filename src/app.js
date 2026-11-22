@@ -2,8 +2,8 @@
   "use strict";
   const $ = (id) => document.getElementById(id);
   const DATA = window.AITRPG_DATA;
-  const STORAGE_KEY = "ai-trpg-prototype-v02";
-  const oldKey = "ai-trpg-prototype-v01";
+  const STORAGE_KEY = "ai-trpg-prototype-v03";
+  const oldKeys = ["ai-trpg-prototype-v02", "ai-trpg-prototype-v01"];
   const defaults = {
     name: "이름 없는 모험가",
     character: null,
@@ -13,16 +13,18 @@
     region: "village",
     gold: 200,
     inventory: [],
-    npcStats: {},
-    monsterStats: {}
+    npcStats: {}
   };
 
   function loadState() {
     try {
       const current = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (current) return { ...defaults, ...current };
-      const old = JSON.parse(localStorage.getItem(oldKey));
-      return old ? { ...defaults, ...old } : { ...defaults };
+      for (const key of oldKeys) {
+        const old = JSON.parse(localStorage.getItem(key));
+        if (old) return { ...defaults, ...old };
+      }
+      return { ...defaults };
     } catch {
       return { ...defaults };
     }
@@ -273,19 +275,7 @@
     save();
   }
 
-  function ensureMonsterStats(monsterId) {
-    if (!state.monsterStats[monsterId]) {
-      const monster = DATA.monsters.find((item) => item.id === monsterId);
-      if (!monster) return null;
-      state.monsterStats[monsterId] = {
-        ...generateBaseStats(monster.name),
-        status: "임시 능력치 초안",
-        source: "캐릭터 공통 주사위 범위를 임시 적용; 마물 전용 규칙 미확정"
-      };
-      save();
-    }
-    return state.monsterStats[monsterId];
-  }
+
 
   function renderRegion() {
     const forest = state.region === "forest";
@@ -319,29 +309,11 @@
     state.region = "forest";
     state.position = "바텀웨이 숲";
     renderRegion();
-    const cards = DATA.monsters.map((monster) =>
-      "<article class=\"npc-note\"><b>" + escapeHtml(monster.name) + "</b><p>" +
-      escapeHtml(monster.description) + "</p><small>" + escapeHtml(monster.category) + "</small><br>" +
-      "<button class=\"primary-modal\" data-monster=\"" + monster.id + "\">관찰 / 능력치 확인</button></article>"
-    ).join("");
-    openModal("바텀웨이 숲", "<p>" + escapeHtml(DATA.regions[1].summary) + "</p>" +
-      "<p class=\"muted\">현재 등장 마물은 탐험 프로토타입용 임시 데이터입니다.</p>" + cards);
-    record("지역 이동", "바텀웨이 숲에 진입했다.");
-  }
-
-  function showMonster(id) {
-    const monster = DATA.monsters.find((item) => item.id === id);
-    const stats = ensureMonsterStats(id);
-    if (!monster || !stats) return;
-    openModal(monster.name,
-      "<p>" + escapeHtml(monster.description) + "</p>" +
-      "<p><b>행동 성향:</b> " + escapeHtml(monster.behavior) + "</p>" +
-      "<p><b>데이터 상태:</b> " + escapeHtml(monster.statStatus) + "</p>" +
-      statHtml(stats) +
-      "<p class=\"muted\">" + escapeHtml(monster.note) + "</p>" +
-      "<p class=\"muted\">실제 전투 실행은 스킬별 AI-TRPG 피해 공식과 몬스터 전용 규칙을 확인한 뒤 연결합니다. 명중·방어·치명타 판정 자체는 별도 전투 엔진으로 이식할 예정입니다.</p>"
+    openModal("바텀웨이 숲",
+      "<p>" + escapeHtml(DATA.regions[1].summary) + "</p>" +
+      "<p class=\"muted\">현재 등록된 마물이 없습니다. 마물 설정은 사용자가 직접 작성할 예정입니다.</p>"
     );
-    record("마물 관찰", monster.name + "의 임시 능력치와 행동 성향을 확인했다.");
+    record("지역 이동", "바텀웨이 숲에 진입했다. 현재 마물 데이터는 비어 있다.");
   }
 
   function showNpcList() {
@@ -551,10 +523,6 @@
     }
     if (target.id === "facilityBack") {
       showFacilities();
-      return;
-    }
-    if (target.dataset.monster) {
-      showMonster(target.dataset.monster);
       return;
     }
     const facilityButton = target.closest("[data-facility]");
