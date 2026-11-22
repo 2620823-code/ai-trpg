@@ -355,7 +355,8 @@
     "포이즌 테러":{job:"rogue",sp:3,kind:"poison"},
     "갈취":{job:"rogue",sp:2,kind:"leech"},
     "회복":{job:"shared",sp:4,kind:"heal"},
-    "브레이브 대쉬":{job:"shared",sp:3,kind:"attack",tier:"normal",formula:c=>c.strength+c.intelligence*1.7+weaponBonus()}
+    "브레이브 대쉬":{job:"shared",sp:3,kind:"attack",tier:"normal",formula:c=>c.strength+c.intelligence*1.7+weaponBonus()},
+    "이판사판":{job:"shared",sp:0,kind:"unknown",hpCost:c=>Math.floor(c.maxHp/16)}
   };
   function showEncounter(monster) {
     const s=monster.stats||{},e=state.activeEncounter;if(!e)return;
@@ -376,7 +377,7 @@
   function playerHitThreshold(tier){return tier==="ultimate"?44:tier==="powerful"?49:55;}
   function showSkillList(){
     const c=state.character;
-    const rows=(c.skills||[]).map(name=>{
+    const rows=(c.equippedSkills||[]).map(name=>{
       const d=SKILL_BOOK[name];if(!d)return "<div class='inventory-item'><b>"+escape(name)+"</b><small>효과 규칙 복원 필요</small></div>";
       const cost=skillCost(name,c),allowed=d.job==="shared"||d.job===c.jobId;
       return "<div class='inventory-item'><b>"+escape(name)+"</b><small>SP "+cost+(allowed?"":" · 현재 직업 사용 불가")+"</small><button class='primary-modal' data-use-skill='"+escape(name)+"' "+(!allowed||c.sp+1<cost?"disabled":"")+">사용</button></div>";
@@ -389,9 +390,11 @@
     const skill=skills[monster.id]||{name:"공격",damage:monster.stats.strength,physical:true};
     const hit=roll(100),def=roll(100),hitOK=hit<=55,defLimit=50+(c.defense||0)/4,parry=!!e.parryReady,defOK=parry||def<=defLimit;
     const damage=hitOK?Math.floor(skill.damage*(defOK?0.25:1)):0;
-    if(skill.physical&&e.counterReady){const reflected=damage*2;e.hp=Math.max(0,e.hp-reflected);record("카운터 반격","받은 물리 피해 "+damage+" · 반격 피해 "+reflected);e.counterReady=false;}
+    if(skill.physical&&e.counterReady){const reflected=damage*2;e.hp=Math.max(0,e.hp-reflected);record("카운터 반격","받은 물리 피해 "+damage+" · 반격 피해 "+reflected);}
+    e.counterReady=false;
     if(e.turretTurns>0){e.hp=Math.max(0,e.hp-10);e.turretTurns--;record("터렛 공격","자동 피해 10 · 남은 지속 "+e.turretTurns+"턴");}
     if(e.poisonTurns>0){const poison=Math.ceil(monster.stats.hp/8);e.hp=Math.max(0,e.hp-poison);e.poisonTurns--;record("포이즌 테러","최대 HP의 1/8 · 피해 "+poison+" · 남은 지속 "+e.poisonTurns+"턴");}
+    if(e.hp<=0){finishMonster(monster);return;}
     c.hp=Math.max(0,c.hp-damage);e.turn=(e.turn||0)+1;e.parryReady=false;
     record("마물 공격",skill.name+" · 명중 1d100="+hit+" (55 이하) · 방어 1d100="+def+" (기준 "+(parry?"자동 성공":defLimit)+") · 피해 "+damage);
     if(e.hp<=0){finishMonster(monster);return;}
@@ -412,11 +415,12 @@
     if(d.job!=="shared"&&d.job!==c.jobId){notify("현재 직업은 이 스킬을 사용할 수 없습니다.");return;}
     const before=c.sp;c.sp=Math.min(c.maxSp||25,(c.sp||0)+1);const cost=skillCost(name,c);
     if(c.sp<cost){c.sp=before;notify("SP가 부족합니다.");return;}c.sp-=cost;
+    if(d.kind==="unknown"){c.sp=before;notify("이판사판의 HP 소모량은 확인됐지만 전투 효과가 아직 정해지지 않아 실행할 수 없습니다.");return;}
     if(d.kind==="parry"){e.parryReady=true;record("스킬 사용","패링 · SP "+cost+" · 다음 공격 방어 자동 성공 · 피해 ×0.25");monsterAttack(monster);return;}
     if(d.kind==="counter"){e.counterReady=true;record("스킬 사용","카운터 · SP "+cost+" · 다음 물리 공격 피해의 2배 반격");monsterAttack(monster);return;}
     if(d.kind==="turret"){e.turretTurns=3;record("스킬 사용","터렛 설치 · SP "+cost+" · 3턴간 매턴 10 피해");monsterAttack(monster);return;}
     if(d.kind==="poison"){e.poisonTurns=3;record("스킬 사용","포이즌 테러 · SP "+cost+" · 3턴간 마물 최대 HP의 1/8 피해");monsterAttack(monster);return;}
-    if(d.kind==="leech"){const stolen=Math.floor((monster.currentSp||0)/2);monster.currentSp=Math.max(0,(monster.currentSp||0)-stolen);c.sp=Math.min(c.maxSp||25,c.sp+stolen);record("스킬 사용","갈취 · SP "+cost+" · 마물 현재 SP 절반 탈취 "+stolen);monsterAttack(monster);return;}
+    if(d.kind==="leech"){if(!Number.isFinite(monster.currentSp)){c.sp=before;notify("이 마물은 SP 보유량이 정해져 있지 않아 갈취할 수 없습니다.");return;}const stolen=Math.floor(monster.currentSp/2);monster.currentSp=Math.max(0,(monster.currentSp||0)-stolen);c.sp=Math.min(c.maxSp||25,c.sp+stolen);record("스킬 사용","갈취 · SP "+cost+" · 마물 현재 SP 절반 탈취 "+stolen);monsterAttack(monster);return;}
     if(d.kind==="heal"){
       if(e.recoveryUsed){c.sp+=cost;notify("회복은 전투당 1회만 사용할 수 있습니다.");return;}
       const amount=Math.floor(c.maxHp/4);c.hp=Math.min(c.maxHp,c.hp+amount);e.recoveryUsed=true;record("스킬 사용","회복 · SP "+cost+" · HP "+amount+" 회복");monsterAttack(monster);return;
@@ -598,7 +602,7 @@
   }
   function showInventory() {
     const c=state.character,weapon=c&&c.equipment&&c.equipment.weapon;
-    const slots=state.inventory.map((item,i)=>"<div class='inventory-item'><b>"+(i+1)+". "+escape(item.name)+"</b><small>"+escape(item.type||"아이템")+(item.type==="무기"?" · PP "+item.pp+"/"+item.maxPp:"")+"</small><button class='primary-modal' data-use-item='"+escape(item.instanceId)+"'>"+(item.type==="무기"?"장착":item.type==="소모품"||item.id==="big-apple"?"사용":"정보")+"</button></div>").join("");
+    const slots=state.inventory.map((item,i)=>"<div class='inventory-item'><b>"+(i+1)+". "+escape(item.name)+"</b><small>"+escape(item.type||"아이템")+(item.type==="무기"?" · PP "+item.pp+"/"+item.maxPp:"")+"</small><button class='primary-modal' data-use-item='"+escape(item.instanceId)+"'>"+(item.type==="무기"?"장착":item.type==="소모품"||item.id==="big-apple"?"사용":item.type==="서적"||item.type==="skill-book"?"읽기":"정보")+"</button></div>").join("");
     openModal("가방","<p>아이템 "+state.inventory.length+" / 30칸 · 보유 골드 "+state.gold+"G</p><h3>장착 칸</h3><div class='inventory-item'><b>무기</b><small>"+(weapon?escape(weapon.name)+" · PP "+weapon.pp+"/"+weapon.maxPp:"비어 있음")+"</small></div>"+(slots||"<p>보유한 아이템이 없습니다.</p>"));
   }
   function grantSkill(skill,source){
@@ -662,7 +666,9 @@
   function useInventoryItem(instanceId){
     const index=state.inventory.findIndex(x=>x.instanceId===instanceId);if(index<0)return;
     const item=state.inventory[index],c=state.character;if(!c)return;
-    if(item.type==="무기"){
+    if(item.type==="방어구"){
+      const old=c.equipment.armor;if(old)state.inventory.push(old);c.equipment.armor=item;state.inventory.splice(index,1);record("방어구 장착",item.name+" 장착");
+    }else if(item.type==="무기"){
       if(item.id==="shop-0"&&c.jobId!=="swordsman"||item.id==="shop-1"&&c.jobId!=="rogue"||item.id==="shop-3"&&!["mage","dark-mage"].includes(c.jobId)||item.id==="shop-4"&&!["technician","swordsman","rogue"].includes(c.jobId)){notify("직업 제한으로 장착할 수 없습니다.");return;}
       const old=c.equipment.weapon;if(old)state.inventory.push(old);
       c.equipment.weapon=item;state.inventory.splice(index,1);
@@ -789,6 +795,8 @@
     if(t.dataset.awakenSkill){openModal("스킬 각성 방식","<p>"+escape(t.dataset.awakenSkill)+"의 각성 효과를 선택하세요.</p><button class='primary-modal' data-awaken-mode='sp' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>SP 소모량 -0.5</button><button class='primary-modal' data-awaken-mode='power' data-awaken-target='"+escape(t.dataset.awakenSkill)+"'>위력 배율 +0.1</button>");}
     if(t.dataset.awakenMode)awakenSkill(t.dataset.awakenTarget,t.dataset.awakenMode);
     if(t.dataset.statPoint)spendStatPoint(t.dataset.statPoint);
+    if(t.id==="unequipWeapon"&&state.character.equipment.weapon){state.inventory.push(state.character.equipment.weapon);state.character.equipment.weapon=null;save();renderCharacter();showInventory();}
+    if(t.id==="unequipArmor"&&state.character.equipment.armor){state.inventory.push(state.character.equipment.armor);state.character.equipment.armor=null;save();renderCharacter();showInventory();}
     if(t.id==="sellApples")sellApples();
     if(t.id==="sellGuildLoot")sellGuildLoot();
     if(t.id==="showGeneralQuests")showGeneralQuests();
