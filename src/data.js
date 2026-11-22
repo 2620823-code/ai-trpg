@@ -107,7 +107,7 @@ window.AITRPG_DATA.monsters = [
   {id:"weak-goblin",name:"약골 고블린",kind:"goblin",zone:"forest",spawnWeight:0.5,stats:{hp:100,strength:25,intelligence:5,defense:20,speed:30}},
   {id:"weak-spider",name:"약골 거미",kind:"spider",zone:"forest",spawnWeight:1,stats:{hp:80,strength:40,intelligence:10,defense:5,speed:40}},
   {id:"goblin",name:"고블린",kind:"goblin",zone:"forest",spawnWeight:0.5,stats:{hp:150,strength:40,intelligence:5,defense:25,speed:25}},
-  {id:"weak-mimic",name:"약골 미믹",kind:"mimic-base",zone:"variant-template",spawnWeight:0,stats:{hp:1,strength:20,intelligence:20,defense:null,speed:40}},
+  {id:"weak-mimic",name:"약골 미믹",kind:"mimic-base",zone:"variant-template",spawnWeight:0,stats:{hp:1,strength:20,intelligence:20,defense:1,speed:40}},
   {id:"treasure-mimic",name:"보물 속 미믹",kind:"mimic",zone:"forest",variantOf:"weak-mimic",spawnWeight:1,appearance:"treasure"},
   {id:"book-mimic",name:"책의 미믹",kind:"mimic",zone:"library",variantOf:"weak-mimic",spawnWeight:1,appearance:"book"}
 ];
