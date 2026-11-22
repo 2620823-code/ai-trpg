@@ -561,23 +561,32 @@
     record("NPC 대화 시작",npc.name+"에게 말을 걸었다.");
   }
 
-  function showJobSelection(){
+  async function showJobSelection(){
     const c=state.character;
     if(!c){notify("먼저 캐릭터를 생성해야 합니다.");return;}
     if(!c.guild?.joined && !state.guildJoined){
-      dialogueHistory.push({speaker:"npc",text:"먼저 벨에게 길드 등록을 신청해. 등록이 끝나면 내가 직업 선택을 도와주지."});
+      dialogueHistory.push({speaker:"npc",text:"먼저 벨에게 길드 등록을 신청하게. 등록이 확인되면 내가 자네의 능력과 성향을 살펴 직업을 정해 주겠네."});
       renderDialogue();return;
     }
-    const jobs=(DATA.jobs||[]).map(j=>"<button class='primary-modal' data-select-job='"+escape(j.id)+"'>"+escape(j.name)+"</button>").join("");
-    openModal("욘 · 직업 선택","<p>길드 등록이 확인되었습니다. 원하는 기본 직업을 선택하세요. 직업 선택 전까지는 무직입니다.</p><div class='job-choice-list'>"+jobs+"</div>");
-  }
-  function selectJob(id){
-    const c=state.character,job=(DATA.jobs||[]).find(j=>j.id===id);if(!c||!job)return;
-    if(c.jobId){notify("이미 직업을 선택했습니다.");return;}
-    c.jobId=job.id;c.jobName=job.name;
-    save();renderCharacter();record("직업 선택","길드 NPC 욘을 통해 "+job.name+" 직업을 선택했다.");
-    closeModal();
-    if(currentNpc?.id==="yon"){dialogueHistory.push({speaker:"npc",text:job.name+"으로 결정했군. 앞으로의 수련과 기술 습득은 이 직업을 기준으로 진행하게."});renderDialogue();}
+    if(c.jobId){dialogueHistory.push({speaker:"npc",text:"자네의 직업은 이미 "+escape(c.jobName||"배정된 직업")+"으로 결정되었네."});renderDialogue();return;}
+    dialogueHistory.push({speaker:"npc",text:"능력치와 배경을 검토해 보겠네. 잠시 기다리게."});renderDialogue();
+    try{
+      const response=await fetch("/api/gm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        mode:"job",
+        character:{name:c.name,race:c.raceName,appearance:c.appearance,personality:c.personality,background:c.background,
+          stats:{hp:c.maxHp,strength:c.strength,intelligence:c.intelligence,defense:c.defense,luck:c.luck,speed:c.speed,precision:c.precision}}
+        ,allowedJobs:(DATA.jobs||[]).map(j=>({id:j.id,name:j.name}))
+      })});
+      const result=await response.json();if(!response.ok)throw new Error(result.message||result.error||"직업 심사 요청 실패");
+      const job=(DATA.jobs||[]).find(j=>j.id===result.jobId);if(!job)throw new Error("허용되지 않은 직업 배정");
+      c.jobId=job.id;c.jobName=job.name;save();renderCharacter();
+      record("길드 직업 배정","욘이 "+job.name+" 직업을 배정했다.");
+      dialogueHistory.push({speaker:"npc",text:String(result.reason||job.name+"이 자네에게 적합하겠네.")});
+      renderDialogue();
+    }catch(error){
+      dialogueHistory.push({speaker:"npc",text:"직업 심사 기록을 확인하지 못했네. 잠시 후 다시 말을 걸어 주게. ("+String(error.message||"연결 오류")+")"});
+      renderDialogue();
+    }
   }
   async function sendDialogue(text) {
     if(!currentNpc||!text.trim())return;
@@ -862,7 +871,6 @@
     const stopAtTarget=()=>{const d=Math.hypot(targetX-state.worldX,targetY-state.worldY);if(d<42||state.activeEncounter){stopMoving();scene.removeEventListener("pointermove",stopAtTarget);}};
     const watcher=window.setInterval(()=>{if(Math.hypot(targetX-state.worldX,targetY-state.worldY)<48||state.activeEncounter){stopMoving();clearInterval(watcher);}},80);
   });
-  $("modalContent").addEventListener("click",(e)=>{const b=e.target.closest("[data-select-job]");if(b)selectJob(b.dataset.selectJob);});
   $("closeModal").addEventListener("click",closeModal);modal.addEventListener("click",(e)=>{if(e.target===modal)closeModal();});
   modalContent.addEventListener("input",(e)=>{if(["charRace","charAppearance","charPersonality","charBackground"].includes(e.target.id)){characterReviewPassed=false;pendingCharacter=null;const roll=$("rollChar"),saveButton=$("saveChar");if(roll)roll.disabled=true;if(saveButton)saveButton.disabled=true;}});
   function exportSaveFile(){
