@@ -683,8 +683,8 @@
   }
   function readSkillBook(item){
     const c=state.character;if(!c)return;
-    const id=item.id||item.name;c.readBooks=c.readBooks||[];
-    if(c.readBooks.includes(id)){notify("이미 읽은 책입니다. 같은 책은 다시 읽을 수 없습니다.");return;}
+    const id=item.id||item.name,bookKey=item.name;c.readBooks=c.readBooks||[];
+    if(c.readBooks.includes(bookKey)){notify("이미 읽은 책입니다. 같은 제목의 책은 다시 읽을 수 없습니다.");return;}
     const pools={
       "swordsman":["스윙"],"mage":["파이어볼","스피릿"],"technician":["테이저"],"fighter":["연속타"],"rogue":["갈취"]
     };
@@ -715,7 +715,7 @@
       openModal(item.name,"<p>이 책은 정보 열람용입니다. 도서관에서 내용을 확인할 수 있습니다.</p>");return;
     }
     if(!grantSkill(skill,item.name))return;
-    c.readBooks.push(id);
+    c.readBooks.push(bookKey);
     const index=state.inventory.findIndex(x=>x.instanceId===item.instanceId);if(index>=0)state.inventory.splice(index,1);
     save();renderCharacter();
   }
