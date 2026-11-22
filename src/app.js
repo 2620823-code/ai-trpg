@@ -412,9 +412,7 @@
       "</tbody></table></div>";
   }
 
-  function startEncounter(monster, location) {
-    state.activeEncounter = { monsterId: monster.id, location };
-    save();
+  function displayEncounter(monster) {
     const appearance = monster.appearance === "book" ? "책의 형태로 서가에 꽂혀 있다가 모습을 드러낸다." :
       monster.appearance === "treasure" ? "보물 상자의 모습을 한 채 숲속에서 발견된다." :
       "마물이 모습을 드러냈다.";
@@ -424,6 +422,12 @@
       '<button class="primary-modal" id="registerDefeatBtn">테스트용 처치 결과 등록</button> ' +
       '<button class="primary-modal" id="leaveEncounterBtn">조우 종료</button>'
     );
+  }
+
+  function startEncounter(monster, location) {
+    state.activeEncounter = { monsterId: monster.id, location };
+    save();
+    displayEncounter(monster);
     record("마물 조우", monster.name + "과(와) 조우했다.");
   }
 
@@ -618,6 +622,10 @@
   }
 
   function showForest() {
+    if (state.activeEncounter) {
+      const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
+      if (activeMonster) { displayEncounter(activeMonster); return; }
+    }
     if (!state.character) {
       createCharacterForm();
       return;
@@ -676,6 +684,10 @@
   }
 
   function showFacility(id) {
+    if (state.activeEncounter && state.activeEncounter.location === "library") {
+      const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
+      if (activeMonster) { displayEncounter(activeMonster); return; }
+    }
     const f = DATA.facilities.find((x) => x.id === id);
     if (!f) return;
     const lines = [];
@@ -759,6 +771,11 @@
   $("createCharacterBtn")?.addEventListener("click", createCharacterForm);
 
   $("moveBtn").addEventListener("click", () => {
+    if (state.activeEncounter) {
+      const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
+      if (activeMonster) displayEncounter(activeMonster);
+      return;
+    }
     if (!state.character) { createCharacterForm(); return; }
     animate("walking", 650);
     if (state.region === "forest") {
@@ -776,6 +793,11 @@
   });
 
   $("forestBtn").addEventListener("click", () => {
+    if (state.activeEncounter) {
+      const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
+      if (activeMonster) displayEncounter(activeMonster);
+      return;
+    }
     if (state.region === "forest") {
       state.region = "village";
       state.position = "바텀웨이마을 광장";
@@ -893,6 +915,12 @@
       showFacility(facilityButton.dataset.facility);
     }
   });
+
+  if (state.activeEncounter) {
+    const activeMonster = monsterForEncounter(state.activeEncounter.monsterId);
+    if (activeMonster) displayEncounter(activeMonster);
+    else state.activeEncounter = null;
+  }
 
   window.addEventListener("beforeunload", save);
   save();
