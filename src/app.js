@@ -17,12 +17,17 @@
   };
 
   function loadState() {
+    const cleanSavedState = (saved) => {
+      if (!saved || typeof saved !== "object") return null;
+      const { monsterStats: discardedMonsterStats, ...clean } = saved;
+      return { ...defaults, ...clean };
+    };
     try {
-      const current = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (current) return { ...defaults, ...current };
+      const current = cleanSavedState(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+      if (current) return current;
       for (const key of oldKeys) {
-        const old = JSON.parse(localStorage.getItem(key));
-        if (old) return { ...defaults, ...old };
+        const old = cleanSavedState(JSON.parse(localStorage.getItem(key)));
+        if (old) return old;
       }
       return { ...defaults };
     } catch {
