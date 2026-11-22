@@ -102,11 +102,19 @@
       ["행운",s.luck],["속도",s.speed],["정교함",s.precision],["SP",s.sp+" / "+s.maxSp]
     ].map(([k,v])=>"<tr><th>"+k+"</th><td>"+v+"</td></tr>").join("") + "</tbody></table></div>";
   }
+  function requiredLp(level){return Math.max(1,level)*50;}
+  function grantLp(amount,reason){
+    const c=state.character;if(!c||c.dead)return;
+    c.lp=(c.lp||0)+amount;let gained=0;
+    while(c.level<10000&&c.lp>=(c.nextLp||requiredLp(c.level))){c.lp-=c.nextLp||requiredLp(c.level);c.level++;c.statPoints=(c.statPoints||0)+1;gained++;c.nextLp=requiredLp(c.level);}
+    c.exp=c.lp;c.nextExp=c.nextLp;
+    record("LP 획득",reason+" · "+amount+" LP"+(gained?" · 레벨 "+c.level+" 상승":""));save();renderCharacter();
+  }
   function renderCharacter() {
     const c = state.character;
     $("heroName").textContent = c ? c.name : state.name;
     document.querySelector(".character-name span").textContent = c ? c.raceName + " · " + c.jobName : "캐릭터 생성 필요";
-    document.querySelector(".level-row").innerHTML = c ? "<span>LEVEL "+c.level+"</span><span>EXP "+c.exp+" / "+c.nextExp+"</span>" : "<span>LEVEL —</span><span>EXP —</span>";
+    document.querySelector(".level-row").innerHTML = c ? "<span>LEVEL "+c.level+"</span><span>LP "+(c.lp||0)+" / "+(c.nextLp||requiredLp(c.level))+"</span>" : "<span>LEVEL —</span><span>EXP —</span>";
     document.querySelector(".stat-list").innerHTML = c ?
       "<div><span>HP</span><b>"+c.hp+" / "+c.maxHp+"</b></div><div class='meter hp'><i style='width:"+(100*c.hp/c.maxHp)+"%'></i></div>"+
       "<div><span>SP</span><b>"+c.sp+" / "+c.maxSp+"</b></div><div class='meter sp'><i style='width:"+(100*c.sp/c.maxSp)+"%'></i></div>"+
@@ -125,13 +133,13 @@
     const raceId = $("charRace").value, jobId = $("charJob").value;
     const stats = applyRace(baseStats(), raceId);
     const race = DATA.races.find((r)=>r.id===raceId), job = DATA.jobs.find((j)=>j.id===jobId);
-    pendingCharacter = {...stats,name,raceId,raceName:race.name,jobId,jobName:job.name,level:1,exp:0,nextExp:100,skills:[],equippedSkills:[],inventory:[]};
+    pendingCharacter = {...stats,name,raceId,raceName:race.name,jobId,jobName:job.name,level:1,lp:0,nextLp:50,statPoints:0,exp:0,nextExp:50,skills:["이판사판"],equippedSkills:["이판사판"],inventory:[],equipment:{weapon:null,armor:null},guild:{joined:false,rank:0},training:{gauge:0,turns:0,braveDashCount:0},dead:false};
     $("rollPreview").innerHTML = statsHtml(pendingCharacter); $("saveChar").disabled = false;
   }
   function saveCharacter() {
     if (!pendingCharacter) return;
     pendingCharacter.name = $("charName").value.trim() || "이름 없는 모험가";
-    state.character = pendingCharacter; state.name = pendingCharacter.name; state.gold = 200;
+    state.character = pendingCharacter; state.name = pendingCharacter.name; state.gold = 200; state.guildJoined=false;
     state.position = "바텀웨이마을 광장"; state.region = "village"; state.worldX = 800; state.worldY = 510;
     state.day = 1; state.inventory = []; state.activeEncounter = null;
     closeModal(); renderCharacter(); renderWorld(); record("캐릭터 생성", state.name+" · "+pendingCharacter.raceName+" · "+pendingCharacter.jobName+" · 시작 골드 200G");
